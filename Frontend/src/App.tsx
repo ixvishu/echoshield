@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
@@ -329,7 +330,7 @@ export default function App() {
     setAlerts([{ id: Date.now(), text, type, time: 'Just now' }, ...alerts]);
   };
 
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = async (text: string) => {
     if (isTyping) return;
     const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     const userMsg = { sender: 'user' as const, text, time: timeStr };
@@ -338,35 +339,24 @@ export default function App() {
     setChatInput("");
     setIsTyping(true);
     
-    setTimeout(() => {
-      const aiText = getAiResponse(text);
+    try {
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash", 
+        systemInstruction: "You are the EcoShield AI Assistant. You specialize in providing emergency guidance, climate resilience updates, and disaster management protocols for all of India. Provide brief, concise, and helpful answers."
+      });
+      const result = await model.generateContent(text);
+      const aiText = result.response.text();
       const aiMsg = { sender: 'ai' as const, text: aiText, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
       setChatMessages(prev => [...prev, aiMsg]);
+    } catch (error) {
+      console.error(error);
+      const fallbackText = "I'm having trouble connecting to the live neural network right now. Please check if the API key is valid or try again.";
+      const aiMsg = { sender: 'ai' as const, text: fallbackText, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+      setChatMessages(prev => [...prev, aiMsg]);
+    } finally {
       setIsTyping(false);
-    }, 800);
-  };
-
-  const getAiResponse = (userText: string) => {
-    const text = userText.toLowerCase();
-    
-    if (text.includes('aqi') || text.includes('air quality') || text.includes('peenya') || text.includes('pollution')) {
-      return `The Peenya Industrial AQI sensor is currently reading ${sensorAqi} PM2.5. This index is considered ${sensorAqi > 200 ? 'UNHEALTHY' : sensorAqi > 100 ? 'MODERATE' : 'GOOD'}. Sensitive groups should take precautions.`;
     }
-    if (text.includes('flood') || text.includes('waterlog') || text.includes('lake') || text.includes('bellandur')) {
-      return `Bellandur Lake water sensor is at a depth of ${riverLevel}m. Current status is ${riverLevel > 13.0 ? 'CRITICAL HIGH (flooding active on ORR)' : 'STABLE'}.`;
-    }
-    if (text.includes('reservoir') || text.includes('water shortage') || text.includes('capacity') || text.includes('tg halli')) {
-      return `Tippagondanahalli (TG Halli) Reservoir reserves are currently at ${reservoirCapacity.toFixed(1)}% capacity. The early warning alert triggers when capacity drops below 30.0%.`;
-    }
-    if (text.includes('report') || text.includes('incidents') || text.includes('active') || text.includes('public') || text.includes('count')) {
-      const pendingReports = reports.filter(r => r.status === 'Pending').length;
-      return `EcoShield has ${reports.length} total citizen reports logged. There are currently ${pendingReports} pending reports requiring BBMP verification in the queue.`;
-    }
-    if (text.includes('help') || text.includes('features') || text.includes('website')) {
-      return `EcoShield AI integrates real-time telemetry inputs (AQI, lake depth, weather), an interactive GIS threat map with overlays (flood hazards, tree falls), AI river-level forecasting models, and a citizen incident portal.`;
-    }
-    
-    return "I'm the EcoShield AI Assistant. You can ask me about real-time Peenya AQI, Bellandur Lake levels, TG Halli reservoir capacity, or active citizen reports.";
   };
 
   const renderAiChatAssistant = () => {
@@ -391,44 +381,69 @@ export default function App() {
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span className="font-bold text-white tracking-wide uppercase text-[10px]">EcoShield AI Assistant</span>
               </div>
-              <button onClick={() => setChatOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setChatOpen(false)} className="text-slate-500 hover:text-white transition-colors cursor-pointer p-1">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Messages Log */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin flex flex-col">
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-2.5 rounded-lg leading-relaxed ${
-                    msg.sender === 'user' 
-                      ? 'bg-blue-600/90 text-white rounded-br-none text-right' 
-                      : 'bg-slate-900 border border-slate-800 text-slate-300 rounded-bl-none text-left'
-                  }`}>
-                    <div>{msg.text}</div>
-                    <div className="text-[8px] text-slate-500 mt-1 text-right">{msg.time}</div>
-                  </div>
+            {/* Chat Messages List */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 font-mono text-[10px]">
+              {!geminiKey ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                  <Lock className="h-8 w-8 text-slate-500 mb-3" />
+                  <h3 className="text-slate-300 font-bold mb-2">API Key Required</h3>
+                  <p className="text-slate-500 text-[10px] mb-4">To use the live AI model, enter your Google Gemini API Key.</p>
+                  <input 
+                    type="password"
+                    placeholder="Paste API Key here..."
+                    className="bg-slate-900 border border-slate-700 rounded p-2 text-xs w-full text-white mb-2"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value;
+                        if (val) {
+                          localStorage.setItem('gemini_key', val);
+                          setGeminiKey(val);
+                        }
+                      }
+                    }}
+                  />
+                  <p className="text-[8px] text-slate-600">Press Enter to save. Stored securely in your browser.</p>
                 </div>
-              ))}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg rounded-bl-none text-slate-500 flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce"></span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.4s' }}></span>
-                  </div>
-                </div>
+              ) : (
+                <>
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] p-2.5 rounded-lg leading-relaxed ${
+                        msg.sender === 'user' 
+                          ? 'bg-blue-600/90 text-white rounded-br-none text-right' 
+                          : 'bg-slate-900 border border-slate-800 text-slate-300 rounded-bl-none text-left'
+                      }`}>
+                        <div>{msg.text}</div>
+                        <div className="text-[8px] text-slate-500 mt-1 text-right">{msg.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg rounded-bl-none text-slate-500 flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce"></span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             {/* Quick Prompts Starter Chips */}
-            {chatMessages.length === 1 && (
+            {geminiKey && chatMessages.length === 1 && (
               <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-900/60 flex flex-wrap gap-1.5">
                 <button 
                   onClick={() => handleSendMessage("Check Peenya AQI")}
                   className="bg-slate-900 hover:bg-slate-850 border border-slate-800 px-2 py-1 rounded text-[9px] text-slate-300 cursor-pointer transition-colors"
                 >
-                  📊 Peenya AQI
+                  📍 Peenya AQI
                 </button>
                 <button 
                   onClick={() => handleSendMessage("Check Bellandur flood level")}
@@ -436,44 +451,34 @@ export default function App() {
                 >
                   💧 Bellandur Lake
                 </button>
-                <button 
-                  onClick={() => handleSendMessage("Check Reservoir capacity")}
-                  className="bg-slate-900 hover:bg-slate-855 border border-slate-800 px-2 py-1 rounded text-[9px] text-slate-300 cursor-pointer transition-colors"
-                >
-                  🏜️ Reservoir Capacity
-                </button>
-                <button 
-                  onClick={() => handleSendMessage("Active Incident Count")}
-                  className="bg-slate-900 hover:bg-slate-855 border border-slate-800 px-2 py-1 rounded text-[9px] text-slate-300 cursor-pointer transition-colors"
-                >
-                  📡 Incident Count
-                </button>
               </div>
             )}
 
             {/* Chat Input */}
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!chatInput.trim()) return;
-                handleSendMessage(chatInput);
-              }}
-              className="bg-[#030712] border-t border-slate-800 p-2 flex gap-2"
-            >
-              <input 
-                type="text" 
-                value={chatInput} 
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Type your resilience inquiry..." 
-                className="flex-1 bg-slate-900/60 border border-slate-800 rounded px-2.5 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500/40 text-slate-200"
-              />
-              <button 
-                type="submit" 
-                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded cursor-pointer transition-colors flex items-center justify-center"
+            {geminiKey && (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!chatInput.trim()) return;
+                  handleSendMessage(chatInput);
+                }}
+                className="bg-[#030712] border-t border-slate-800 p-2 flex gap-2"
               >
-                <Send className="h-3 w-3" />
-              </button>
-            </form>
+                <input 
+                  type="text" 
+                  value={chatInput} 
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type your resilience inquiry..." 
+                  className="flex-1 bg-slate-900/60 border border-slate-800 rounded px-2.5 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500/40 text-slate-200"
+                />
+                <button 
+                  type="submit" 
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded cursor-pointer transition-colors flex items-center justify-center"
+                >
+                  <Send className="h-3 w-3" />
+                </button>
+              </form>
+            )}
           </div>
         )}
       </div>
@@ -1155,4 +1160,5 @@ export default function App() {
     );
   };
 
-
+const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || '');
+  
