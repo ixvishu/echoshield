@@ -26,7 +26,8 @@ import {
   Send,
   X,
   Sun,
-  Moon
+  Moon,
+  MapPin
 } from 'lucide-react';
 
 // Subcomponents
@@ -107,6 +108,9 @@ export default function App() {
   const [publicPhone, setPublicPhone] = useState("");
   const [publicType, setPublicType] = useState("Flood");
   const [publicLocation, setPublicLocation] = useState("");
+  const [publicLat, setPublicLat] = useState<number | null>(null);
+  const [publicLng, setPublicLng] = useState<number | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [publicDesc, setPublicDesc] = useState("");
   const [publicSuccess, setPublicSuccess] = useState("");
 
@@ -207,8 +211,8 @@ export default function App() {
       phone: publicPhone || "+91 99999 88888",
       type: publicType,
       location: publicLocation,
-      lat: 12.9716 + (Math.random() - 0.5) * 0.08,
-      lng: 77.5946 + (Math.random() - 0.5) * 0.08,
+      lat: publicLat !== null ? publicLat : 12.9716 + (Math.random() - 0.5) * 0.08,
+      lng: publicLng !== null ? publicLng : 77.5946 + (Math.random() - 0.5) * 0.08,
       desc: publicDesc,
       status: "Pending",
       time: "Just now",
@@ -227,6 +231,8 @@ export default function App() {
     setPublicName("");
     setPublicPhone("");
     setPublicLocation("");
+    setPublicLat(null);
+    setPublicLng(null);
     setPublicDesc("");
     
     // Clear message after 10 seconds
@@ -856,11 +862,24 @@ export default function App() {
                       </div>
                       <div className="space-y-1">
                         <label className="text-slate-400 font-semibold">Incident Location</label>
-                        <input 
-                          type="text" required value={publicLocation} onChange={e => setPublicLocation(e.target.value)}
-                          placeholder="e.g. Silk Board Service Rd" 
-                          className="bg-[#0b0f17]/80 border border-slate-800 p-2.5 rounded-lg w-full text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        />
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" required value={publicLocation} onChange={e => setPublicLocation(e.target.value)}
+                            placeholder="e.g. Silk Board Service Rd" 
+                            className="bg-[#0b0f17]/80 border dark:border-slate-800 border-slate-300 p-2.5 rounded-lg w-full dark:text-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                          />
+                          <button 
+                            type="button"
+                            onClick={handleGetLocation}
+                            disabled={isLocating}
+                            className={`px-3 py-2.5 rounded-lg flex items-center justify-center transition-colors ${
+                              isLocating ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
+                            }`}
+                            title="Get GPS Location"
+                          >
+                            <MapPin className={`h-5 w-5 ${isLocating ? 'animate-pulse' : ''}`} />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -903,7 +922,7 @@ export default function App() {
         {renderAiChatAssistant()}
       </div>
     );
-  }
+  };
 
   return (
     <div className="min-h-screen flex flex-col dark:bg-[#05070c] bg-slate-50 text-slate-900 dark:text-slate-100 font-sans transition-colors">
@@ -1116,4 +1135,24 @@ export default function App() {
       {renderAiChatAssistant()}
     </div>
   );
-}
+}  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setPublicLat(position.coords.latitude);
+        setPublicLng(position.coords.longitude);
+        setPublicLocation(`Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`);
+        setIsLocating(false);
+      },
+      () => {
+        alert("Unable to retrieve your location. Please check your browser permissions.");
+        setIsLocating(false);
+      }
+    );
+  };
+
+
