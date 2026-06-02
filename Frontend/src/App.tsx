@@ -332,6 +332,165 @@ export default function App() {
     setAlerts([{ id: Date.now(), text, type, time: 'Just now' }, ...alerts]);
   };
 
+  const getLocalAiResponse = (text: string): string => {
+    const query = text.toLowerCase();
+    
+    if (query.includes("where am i")) {
+      if (userLocation) {
+        const lat = userLocation.lat;
+        const lng = userLocation.lng;
+        const nearestShelterInfo = findNearestShelter(lat, lng, [...resources, ...localResources]);
+        const nearestShelterName = nearestShelterInfo ? nearestShelterInfo.shelter.name : "None found";
+        const nearestShelterDist = nearestShelterInfo ? (nearestShelterInfo.distance / 1000).toFixed(2) + " km" : "N/A";
+        
+        const floodPoly = getFloodPolygon(lat, lng);
+        const isInsideFlood = isPointInPolygon(lat, lng, floodPoly);
+
+        return `<div class="space-y-2">
+          <div class="font-bold text-cyan-400">📍 Live GPS Telemetry</div>
+          <div>Coordinates: <span class="font-bold text-white">${lat.toFixed(5)}, ${lng.toFixed(5)}</span></div>
+          <div>Address: <span class="font-bold text-white">${userLocation.district}, ${userLocation.city}, ${userLocation.state}</span></div>
+          <div class="bg-slate-900/50 p-2 rounded text-[10px]">
+            Flood Risk Status: <span class="font-bold ${isInsideFlood ? 'text-red-450' : 'text-slate-400'}">${isInsideFlood ? 'CRITICAL BASIN' : 'Safe'}</span><br/>
+            Nearest Shelter: <span class="font-bold text-emerald-400">${nearestShelterName}</span> (${nearestShelterDist} away)
+          </div>
+        </div>`;
+      }
+      return "Obtaining GPS lock. Please wait 5 seconds and request coordinates again.";
+    }
+
+    if (query.includes("flood zone") || query.includes("am i in danger") || query.includes("flood risk")) {
+      if (userLocation) {
+        const lat = userLocation.lat;
+        const lng = userLocation.lng;
+        const floodPoly = getFloodPolygon(lat, lng);
+        const isInsideFlood = isPointInPolygon(lat, lng, floodPoly);
+        const nearestShelterInfo = findNearestShelter(lat, lng, [...resources, ...localResources]);
+        const nearestShelterName = nearestShelterInfo ? nearestShelterInfo.shelter.name : "None found";
+        const nearestShelterDist = nearestShelterInfo ? (nearestShelterInfo.distance / 1000).toFixed(2) + " km" : "N/A";
+
+        if (isInsideFlood) {
+          return `<div class="space-y-2 text-red-400">
+            <div class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> FLOOD HAZARD WARNING</div>
+            <p class="text-white text-[10px]">Your current coordinates lie inside the active <b>Flood-Prone Overlays Zone</b>.</p>
+            <div class="bg-red-955/20 border border-red-900/40 p-2 rounded text-[10px] text-slate-350">
+              Recommendation: Evacuate immediately to:<br/>
+              <b>${nearestShelterName}</b> (${nearestShelterDist} away, Contact: ${nearestShelterInfo?.shelter.contact || 'EWS Center'})
+            </div>
+          </div>`;
+        } else {
+          return `<div class="space-y-2 text-emerald-450">
+            <div class="font-bold">✅ FLOOD STATUS: SAFE</div>
+            <p class="text-slate-300 text-[10px]">Your coordinates are in a safe zone outside active flood boundaries. Local sensors report <b>${riverLevel}m</b>.</p>
+          </div>`;
+        }
+      }
+      return "Awaiting geolocation coordinate lock. Please check again.";
+    }
+
+    if (query.includes("nearest shelter") || query.includes("show shelter") || query.includes("find shelter")) {
+      if (userLocation) {
+        const lat = userLocation.lat;
+        const lng = userLocation.lng;
+        const nearestShelterInfo = findNearestShelter(lat, lng, [...resources, ...localResources]);
+        if (nearestShelterInfo) {
+          return `<div class="space-y-2">
+            <div class="font-bold text-emerald-400">🏠 Closest Relief Shelter</div>
+            <div>Name: <span class="font-bold text-white">${nearestShelterInfo.shelter.name}</span></div>
+            <div>Distance: <span class="font-bold text-white">${(nearestShelterInfo.distance / 1000).toFixed(2)} km</span></div>
+            <div class="bg-slate-900/50 p-2 rounded text-[10px] text-slate-400">
+              Location: ${nearestShelterInfo.shelter.location}<br/>
+              Contact: <b>${nearestShelterInfo.shelter.contact || 'EWS Hotline'}</b>
+            </div>
+          </div>`;
+        }
+      }
+      return "Awaiting GPS tracking stream.";
+    }
+
+    if (query.includes("nearby hospital") || query.includes("show hospital") || query.includes("find hospital") || query.includes("show nearby hospital") || query.includes("nearby hospitals") || query.includes("show hospitals")) {
+      if (userLocation) {
+        const lat = userLocation.lat;
+        const lng = userLocation.lng;
+        const allRes = [...resources, ...localResources];
+        const hospitals = allRes.filter(r => r.type === 'Hospital' || r.type === 'Ambulance');
+        const list = hospitals.map(h => {
+          const d = (getDistance(lat, lng, h.lat, h.lng) / 1000).toFixed(2);
+          return `<li><b>${h.name}</b> (${d} km, Contact: ${h.contact})</li>`;
+        }).join("");
+
+        return `<div class="space-y-2">
+          <div class="font-bold text-red-400">🏥 Nearby Medical Facilities</div>
+          <ul class="list-disc pl-4 space-y-1 text-[10px] text-slate-350">
+            ${list || '<li>No medical stations indexed in the current dispatch sector.</li>'}
+          </ul>
+        </div>`;
+      }
+      return "Awaiting GPS tracking stream.";
+    }
+
+    if (query.includes('aqi') || query.includes('air quality') || query.includes('peenya') || query.includes('pollution')) {
+      const status = sensorAqi > 200 ? 'UNHEALTHY' : sensorAqi > 100 ? 'MODERATE' : 'GOOD';
+      return `<div class="space-y-2">
+        <div class="font-bold text-cyan-400">🌬️ AQI Analysis Report</div>
+        <div>The Peenya Industrial AQI sensor is reading <b>${sensorAqi} PM2.5</b>.</div>
+        <div class="bg-slate-900/50 p-2 rounded text-[10px]">
+          Status: <span class="font-bold ${sensorAqi > 200 ? 'text-red-450' : 'text-cyan-400'}">${status}</span><br/>
+          Recommendation: ${sensorAqi > 200 ? 'Issue public health warning and halt outdoor industrial activities.' : 'Air quality is within acceptable limits.'}
+        </div>
+      </div>`;
+    }
+
+    if (query.includes('flood') || query.includes('waterlog') || query.includes('lake') || query.includes('bellandur')) {
+      const status = riverLevel > 12.8 ? 'CRITICAL HIGH' : 'STABLE';
+      return `<div class="space-y-2">
+        <div class="font-bold text-cyan-400">💧 Flood Risk Assessment</div>
+        <div>Bellandur Lake telemetry indicates a depth of <b>${riverLevel}m</b>.</div>
+        <div class="bg-slate-900/50 p-2 rounded text-[10px]">
+          Current Status: <b>${status}</b><br/>
+          AI Prediction: ${riverLevel > 12.8 ? 'Flooding imminent on Outer Ring Road. Deploy NDRF.' : 'Water levels expected to remain stable for next 24hrs.'}
+        </div>
+      </div>`;
+    }
+
+    if (query.includes('reservoir') || query.includes('water shortage') || query.includes('capacity') || query.includes('tg halli')) {
+      const status = reservoirCapacity < 30 ? 'CRITICAL LOW' : 'ADEQUATE';
+      return `<div class="space-y-2">
+        <div class="font-bold text-cyan-400">🛢️ Reservoir Telemetry</div>
+        <div>TG Halli Reservoir is at <b>${reservoirCapacity.toFixed(1)}%</b> capacity.</div>
+        <div class="bg-slate-900/50 p-2 rounded text-[10px]">
+          Status: <b>${status}</b><br/>
+          Drought Risk: ${reservoirCapacity < 30 ? 'High. Implement Stage 2 water rationing.' : 'Low. Sufficient reserves for current season.'}
+        </div>
+      </div>`;
+    }
+
+    if (query.includes('report') || query.includes('incidents') || query.includes('active') || query.includes('public') || query.includes('count')) {
+      const pending = reports.filter(r => r.status === 'Pending').length;
+      return `<div class="space-y-2">
+        <div class="font-bold text-cyan-400">📋 Citizen Report Summary</div>
+        <div>Total incidents logged: <b>${reports.length}</b></div>
+        <div class="bg-slate-900/50 p-2 rounded text-[10px]">
+          <b>${pending}</b> pending reports require BBMP verification.
+        </div>
+      </div>`;
+    }
+
+    if (query.includes('help') || query.includes('features') || query.includes('website')) {
+      return `<div class="space-y-2">
+        <div class="font-bold text-cyan-400">🤖 EcoShield AI System Features:</div>
+        <ul class="list-disc pl-4 space-y-1 text-[10px] text-slate-350">
+          <li>Real-time telemetry (AQI, Lake Depth, Weather)</li>
+          <li>Interactive GIS threat mapping</li>
+          <li>AI predictive river-level models</li>
+          <li>Citizen incident portal integration</li>
+        </ul>
+      </div>`;
+    }
+
+    return `I am the EcoShield AI Assistant. I can provide detailed structural analysis on **Peenya AQI**, **Bellandur Lake levels**, **TG Halli reservoir capacity**, or **active citizen reports**. Please select a quick prompt.`;
+  };
+
   const handleSendMessage = async (text: string) => {
     if (isTyping) return;
     const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -438,7 +597,7 @@ Please use this precise local real-time context to answer the user's question ac
       setChatMessages(prev => [...prev, aiMsg]);
     } catch (error) {
       console.warn("Gemini query failed or not configured. Using local fallback.", error);
-      const finalResponse = localResponse || "I'm having trouble connecting to the live AI network right now. Please check if the API key is valid or try again.";
+      const finalResponse = localResponse || getLocalAiResponse(text);
       const aiMsg = { sender: 'ai' as const, text: finalResponse, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
       setChatMessages(prev => [...prev, aiMsg]);
     } finally {
@@ -475,18 +634,16 @@ Please use this precise local real-time context to answer the user's question ac
 
             {/* Chat Messages List */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 font-mono text-[10px]">
-              {!geminiKey ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                  <Lock className="h-8 w-8 text-slate-500 mb-3" />
-                  <h3 className="text-slate-300 font-bold mb-2">API Key Required</h3>
-                  <p className="text-slate-500 text-[10px] mb-4">To use the live AI model, enter your Google Gemini API Key.</p>
+              {!geminiKey && (
+                <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded text-[8px] text-slate-500 mb-2 leading-normal">
+                  ℹ️ Using offline telemetry backup model. Paste Gemini API Key and press Enter to enable live LLM reasoning.
                   <input 
                     type="password"
-                    placeholder="Paste API Key here..."
-                    className="bg-slate-900 border border-slate-700 rounded p-2 text-xs w-full text-white mb-2"
+                    placeholder="Paste Gemini API Key & press Enter..."
+                    className="bg-black/40 border border-slate-750 rounded p-1 text-[8px] w-full text-white mt-1 focus:outline-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        const val = (e.target as HTMLInputElement).value;
+                        const val = (e.currentTarget as HTMLInputElement).value;
                         if (val) {
                           localStorage.setItem('gemini_key', val);
                           setGeminiKey(val);
@@ -494,37 +651,33 @@ Please use this precise local real-time context to answer the user's question ac
                       }
                     }}
                   />
-                  <p className="text-[8px] text-slate-600">Press Enter to save. Stored securely in your browser.</p>
                 </div>
-              ) : (
-                <>
-                  {chatMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] p-2.5 rounded-lg leading-relaxed ${
-                        msg.sender === 'user' 
-                          ? 'bg-blue-600/90 text-white rounded-br-none text-right' 
-                          : 'bg-slate-900 border border-slate-800 text-slate-300 rounded-bl-none text-left'
-                      }`}>
-                        <div>{msg.text}</div>
-                        <div className="text-[8px] text-slate-500 mt-1 text-right">{msg.time}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg rounded-bl-none text-slate-500 flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce"></span>
-                        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.4s' }}></span>
-                      </div>
-                    </div>
-                  )}
-                </>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-2.5 rounded-lg leading-relaxed ${
+                    msg.sender === 'user' 
+                      ? 'bg-blue-600/90 text-white rounded-br-none text-right' 
+                      : 'bg-slate-900 border border-slate-800 text-slate-350 rounded-bl-none text-left'
+                  }`}>
+                    <div dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>') }}></div>
+                    <div className="text-[8px] text-slate-500 mt-1 text-right">{msg.time}</div>
+                  </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg rounded-bl-none text-slate-500 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce"></span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+                  </div>
+                </div>
               )}
             </div>
-
+ 
             {/* Quick Prompts Starter Chips */}
-            {geminiKey && chatMessages.length === 1 && (
+            {chatMessages.length === 1 && (
               <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-900/60 flex flex-wrap gap-1.5">
                 <button 
                   onClick={() => handleSendMessage("Check Peenya AQI")}
@@ -540,32 +693,30 @@ Please use this precise local real-time context to answer the user's question ac
                 </button>
               </div>
             )}
-
+ 
             {/* Chat Input */}
-            {geminiKey && (
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!chatInput.trim()) return;
-                  handleSendMessage(chatInput);
-                }}
-                className="bg-[#030712] border-t border-slate-800 p-2 flex gap-2"
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!chatInput.trim()) return;
+                handleSendMessage(chatInput);
+              }}
+              className="bg-[#030712] border-t border-slate-800 p-2 flex gap-2"
+            >
+              <input 
+                type="text" 
+                value={chatInput} 
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Type your resilience inquiry..." 
+                className="flex-1 bg-slate-900/60 border border-slate-800 rounded px-2.5 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500/40 text-slate-200"
+              />
+              <button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded cursor-pointer transition-colors flex items-center justify-center"
               >
-                <input 
-                  type="text" 
-                  value={chatInput} 
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Type your resilience inquiry..." 
-                  className="flex-1 bg-slate-900/60 border border-slate-800 rounded px-2.5 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500/40 text-slate-200"
-                />
-                <button 
-                  type="submit" 
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded cursor-pointer transition-colors flex items-center justify-center"
-                >
-                  <Send className="h-3 w-3" />
-                </button>
-              </form>
-            )}
+                <Send className="h-3 w-3" />
+              </button>
+            </form>
           </div>
         )}
       </div>
