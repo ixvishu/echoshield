@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, 
   Wifi, 
@@ -35,6 +35,7 @@ import {
 import CommandCenter from './components/CommandCenter';
 import GisMap from './components/GisMap';
 import AiPrediction from './components/AiPrediction';
+import CopilotCenter from './components/CopilotCenter';
 import EnvironmentalMonitoring from './components/EnvironmentalMonitoring';
 import CitizenReporting from './components/CitizenReporting';
 import EmergencyManagement from './components/EmergencyManagement';
@@ -339,21 +340,106 @@ export default function App() {
     setChatMessages(prev => [...prev, userMsg]);
     setChatInput("");
     setIsTyping(true);
-    
+
+    const query = text.toLowerCase();
+    const isWhereAmI = query.includes("where am i");
+    const isFloodZone = query.includes("flood zone") || query.includes("am i in a flood") || query.includes("flood risk");
+    const isNearestShelter = query.includes("nearest shelter") || query.includes("show shelter") || query.includes("find shelter");
+    const isNearbyHospitals = query.includes("nearby hospital") || query.includes("show hospital") || query.includes("find hospital") || query.includes("show nearby hospital") || query.includes("nearby hospitals") || query.includes("show hospitals");
+
+    if (isNearestShelter) {
+      setActiveTab("map");
+      setMapAction({ type: 'show_shelter', timestamp: Date.now() });
+    } else if (isNearbyHospitals) {
+      setActiveTab("map");
+      setMapAction({ type: 'show_hospitals', timestamp: Date.now() });
+    } else if (isWhereAmI || isFloodZone) {
+      setActiveTab("map");
+      setMapAction({ type: 'center_user', timestamp: Date.now() });
+    }
+
+    let geoContext = "";
+    let localResponse = "";
+
+    if (userLocation) {
+      const lat = userLocation.lat;
+      const lng = userLocation.lng;
+      const allResources = [...resources, ...localResources];
+      
+      const floodPoly = getFloodPolygon(lat, lng);
+      const isInsideFlood = isPointInPolygon(lat, lng, floodPoly);
+      
+      const landslideCircles = getLandslideCircles(lat, lng);
+      const isInsideLandslide = landslideCircles.some(c => getDistance(lat, lng, c.center[0], c.center[1]) < c.radius);
+      
+      const droughtCircle = getDroughtCircle(lat, lng);
+      const isInsideDrought = getDistance(lat, lng, droughtCircle.center[0], droughtCircle.center[1]) < droughtCircle.radius;
+      
+      const nearestShelterInfo = findNearestShelter(lat, lng, allResources);
+      const nearestShelterName = nearestShelterInfo ? nearestShelterInfo.shelter.name : "None found";
+      const nearestShelterDist = nearestShelterInfo ? (nearestShelterInfo.distance / 1000).toFixed(2) + " km" : "N/A";
+      const nearestShelterContact = nearestShelterInfo ? nearestShelterInfo.shelter.contact : "";
+
+      const nearbyHospitalsList = allResources.filter(f => f.type === 'Hospital').map(h => {
+        const dist = (getDistance(lat, lng, h.lat, h.lng) / 1000).toFixed(2);
+        return `- ${h.name} (${dist} km away, Contact: ${h.contact})`;
+      }).join("\n");
+
+      const floodRiskStr = isInsideFlood ? "CRITICAL (Inside Active Flood Hazard Zone)" : "Low";
+      const landslideRiskStr = isInsideLandslide ? "High (Landslide / Erosion hazard area)" : "Low";
+      const droughtRiskStr = isInsideDrought ? "Moderate (Dry groundwater basin)" : "Low";
+      const aggregateRisk = isInsideFlood ? "CRITICAL" : (isInsideLandslide ? "HIGH" : "NORMAL");
+
+      geoContext = `
+USER CURRENT GEOLOCATION CONTEXT:
+- Latitude: ${lat.toFixed(6)}
+- Longitude: ${lng.toFixed(6)}
+- Address: ${userLocation.district}, ${userLocation.city}, ${userLocation.state}
+- Environmental Sensor AQI: ${sensorAqi} (Moderate)
+- Calculated Risks at Coordinates:
+  * Flood Risk: ${floodRiskStr}
+  * Landslide Risk: ${landslideRiskStr}
+  * Drought Risk: ${droughtRiskStr}
+  * Aggregate Disaster Risk: ${aggregateRisk}
+- Nearest Emergency Shelter: ${nearestShelterName} (Distance: ${nearestShelterDist}, Contact: ${nearestShelterContact})
+- Nearby Hospitals:
+${nearbyHospitalsList}
+
+Please use this precise local real-time context to answer the user's question accurately. Mention specific coordinates, district, city, risks, and closest facilities names/distances as calculated above.
+`;
+
+      if (isWhereAmI) {
+        localResponse = `You are currently geolocated at **${userLocation.district}, ${userLocation.city}, ${userLocation.state}** (GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}). Current environmental metrics: AQI is **${sensorAqi}**, Flood Risk is **${isInsideFlood ? 'CRITICAL' : 'Low'}**, and nearest shelter is **${nearestShelterName}** (**${nearestShelterDist}** away).`;
+      } else if (isFloodZone) {
+        localResponse = isInsideFlood 
+          ? `⚠️ **WARNING**: You are currently inside an active **Flood-Prone Overlays Zone** (River level alert: Critical). Please prepare for evacuation to the nearest shelter: **${nearestShelterName}** (${nearestShelterDist} away).`
+          : `✅ You are currently in a **Safe Zone**. The flood risk at your current coordinates is low.`;
+      } else if (isNearestShelter) {
+        localResponse = `🏠 The nearest safe shelter has been highlighted on your GIS Map: **${nearestShelterName}**, located **${nearestShelterDist}** away from you. Contact: **${nearestShelterContact}**.`;
+      } else if (isNearbyHospitals) {
+        localResponse = `🏥 Nearby emergency medical facilities have been displayed on the GIS map:\n\n${allResources.filter(f => f.type === 'Hospital').map(h => `${h.name} (${(getDistance(lat, lng, h.lat, h.lng)/1000).toFixed(2)} km away, Contact: ${h.contact})`).join('\n')}`;
+      }
+    }
+
     try {
+      if (!geminiKey) {
+        throw new Error("No Gemini key configured. Fallback to local response.");
+      }
       const genAI = new GoogleGenerativeAI(geminiKey);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash", 
         systemInstruction: "You are the EcoShield AI Assistant. You specialize in providing emergency guidance, climate resilience updates, and disaster management protocols for all of India. Provide brief, concise, and helpful answers."
       });
-      const result = await model.generateContent(text);
+
+      const prompt = geoContext ? `${geoContext}\n\nUser Question: ${text}` : text;
+      const result = await model.generateContent(prompt);
       const aiText = result.response.text();
       const aiMsg = { sender: 'ai' as const, text: aiText, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
       setChatMessages(prev => [...prev, aiMsg]);
     } catch (error) {
-      console.error(error);
-      const fallbackText = "I'm having trouble connecting to the live neural network right now. Please check if the API key is valid or try again.";
-      const aiMsg = { sender: 'ai' as const, text: fallbackText, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+      console.warn("Gemini query failed or not configured. Using local fallback.", error);
+      const finalResponse = localResponse || "I'm having trouble connecting to the live AI network right now. Please check if the API key is valid or try again.";
+      const aiMsg = { sender: 'ai' as const, text: finalResponse, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
       setChatMessages(prev => [...prev, aiMsg]);
     } finally {
       setIsTyping(false);
@@ -534,6 +620,496 @@ export default function App() {
           </div>
         </div>
       </div>
+    );
+  };
+
+  // --- REAL-TIME GEOLOCATION STATES & LOGIC ---
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+    district: string;
+    city: string;
+    state: string;
+    addressFetched: boolean;
+    timestamp?: string;
+    speed?: number;
+    direction?: string;
+  } | null>(null);
+
+  const [localResources, setLocalResources] = useState<EmergencyResource[]>([]);
+  const [mapAction, setMapAction] = useState<{
+    type: 'center_user' | 'show_shelter' | 'show_hospitals' | null;
+    timestamp: number;
+  } | null>(null);
+
+  // Upgraded GIS Tracking States
+  const [locationHistory, setLocationHistory] = useState<Array<{ lat: number; lng: number }>>([]);
+  const [distanceTraveled, setDistanceTraveled] = useState<number>(0);
+  const [currentSpeed, setCurrentSpeed] = useState<number>(0);
+  const [currentDirection, setCurrentDirection] = useState<string>("Stationary");
+  const [followUser, setFollowUser] = useState<boolean>(true);
+  const [onlineCount, setOnlineCount] = useState<number>(1);
+  const [activeTrackedUsers, setActiveTrackedUsers] = useState<any>({});
+  const [liveLocationFeed, setLiveLocationFeed] = useState<string[]>([]);
+  const [activeBaseMap, setActiveBaseMap] = useState<string>("dark");
+  const [evacuationPath, setEvacuationPath] = useState<Array<[number, number]> | null>(null);
+  const [geofenceAlert, setGeofenceAlert] = useState<string | null>(null);
+  const [showHeatmap, setShowHeatmap] = useState<boolean>(false);
+  const [heatmapType, setHeatmapType] = useState<string>("flood");
+
+  // Latest coordinates ref for the 1-second interval timer
+  const latestCoordsRef = useRef<{ lat: number; lng: number; speed?: number | null; heading?: number | null } | null>(null);
+  const watchIdRef = useRef<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // Geocoding helper
+  const getMockAddress = (lat: number, lng: number) => {
+    if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+      return {
+        district: "Koramangala",
+        city: "Bengaluru",
+        state: "Karnataka"
+      };
+    }
+    return {
+      district: "Local District",
+      city: "Local City",
+      state: "Local State"
+    };
+  };
+
+  const fetchAddress = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+        headers: {
+          'Accept-Language': 'en',
+          'User-Agent': 'EcoShield-Resilience-App'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const address = data.address || {};
+        const district = address.suburb || address.neighbourhood || address.county || address.district || "Unknown District";
+        const city = address.city || address.town || address.village || "Unknown City";
+        const state = address.state || address.region || "Unknown State";
+        return { district, city, state };
+      }
+    } catch (e) {
+      console.error("Reverse geocoding failed, falling back to mock", e);
+    }
+    return getMockAddress(lat, lng);
+  };
+
+  // Generate mock facilities around user
+  const generateLocalFacilities = (lat: number, lng: number) => {
+    return [
+      { id: "LOC-HOSP-1", name: "Metro Trauma Hospital", type: "Hospital", status: "Active" as const, location: "Nearby Area", lat: lat + 0.005, lng: lng - 0.004, contact: "+91 99000 11111" },
+      { id: "LOC-HOSP-2", name: "City Care Clinic", type: "Hospital", status: "Active" as const, location: "Nearby Area", lat: lat - 0.006, lng: lng + 0.007, contact: "+91 99000 22222" },
+      { id: "LOC-SHEL-1", name: "Primary Emergency Shelter", type: "Shelter", status: "Active" as const, location: "Nearby Area", lat: lat + 0.007, lng: lng + 0.005, contact: "+91 99000 33333" },
+      { id: "LOC-SHEL-2", name: "Community Relief Shelter", type: "Shelter", status: "Standby" as const, location: "Nearby Area", lat: lat - 0.008, lng: lng - 0.006, contact: "+91 99000 44444" },
+      { id: "LOC-FIRE-1", name: "District Fire Station", type: "Fire Station", status: "Standby" as const, location: "Nearby Area", lat: lat - 0.003, lng: lng - 0.002, contact: "+91 99000 55555" },
+      { id: "LOC-CAMP-1", name: "EcoShield Relief Camp Alpha", type: "Relief Camp", status: "Active" as const, location: "Nearby Area", lat: lat + 0.009, lng: lng - 0.003, contact: "+91 99000 66666" },
+    ];
+  };
+
+  const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371e3; // metres
+    const phi1 = lat1 * Math.PI/180;
+    const phi2 = lat2 * Math.PI/180;
+    const deltaPhi = (lat2-lat1) * Math.PI/180;
+    const deltaLambda = (lng2-lng1) * Math.PI/180;
+    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // in metres
+  };
+
+  const isPointInPolygon = (lat: number, lng: number, polygon: [number, number][]) => {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][0], yi = polygon[i][1];
+      const xj = polygon[j][0], yj = polygon[j][1];
+      const intersect = ((yi > lng) !== (yj > lng))
+          && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
+  const getFloodPolygon = (lat: number, lng: number): [number, number][] => {
+    if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+      return [
+        [12.970, 77.590], [12.972, 77.620], [12.965, 77.660],
+        [12.958, 77.660], [12.952, 77.630], [12.959, 77.590]
+      ];
+    }
+    return [
+      [lat + 0.004, lng + 0.004],
+      [lat + 0.004, lng - 0.004],
+      [lat - 0.004, lng - 0.004],
+      [lat - 0.004, lng + 0.004]
+    ];
+  };
+
+  const getLandslideCircles = (lat: number, lng: number) => {
+    if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+      return [
+        { center: [12.918, 77.565] as [number, number], radius: 800, name: "Landslide Risk Zone" },
+        { center: [12.930, 77.675] as [number, number], radius: 600, name: "Erosion Hazard Zone" }
+      ];
+    }
+    return [
+      { center: [lat - 0.006, lng - 0.005] as [number, number], radius: 800, name: "Landslide Risk Zone" },
+      { center: [lat + 0.007, lng - 0.007] as [number, number], radius: 600, name: "Erosion Hazard Zone" }
+    ];
+  };
+
+  const getDroughtCircle = (lat: number, lng: number) => {
+    if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+      return { center: [12.890, 77.610] as [number, number], radius: 2000, name: "Dry Groundwater Basin" };
+    }
+    return { center: [lat - 0.010, lng + 0.008] as [number, number], radius: 2000, name: "Dry Groundwater Basin" };
+  };
+
+  const findNearestShelter = (currentLat: number, currentLng: number, allFacilities: EmergencyResource[]) => {
+    const shelters = allFacilities.filter(f => f.type === 'Shelter');
+    if (shelters.length === 0) return null;
+    
+    let nearest = shelters[0];
+    let minDistance = getDistance(currentLat, currentLng, nearest.lat, nearest.lng);
+    
+    for (let i = 1; i < shelters.length; i++) {
+      const dist = getDistance(currentLat, currentLng, shelters[i].lat, shelters[i].lng);
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearest = shelters[i];
+      }
+    }
+    return { shelter: nearest, distance: minDistance };
+  };
+
+  // Start tracking user location
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      console.warn("Geolocation is not supported by this browser.");
+      return;
+    }
+
+    const handleSuccess = (position: GeolocationPosition) => {
+      latestCoordsRef.current = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        speed: position.coords.speed,
+        heading: position.coords.heading
+      };
+    };
+
+    const handleError = (error: GeolocationPositionError) => {
+      console.error("watchPosition error:", error.message);
+    };
+
+    watchIdRef.current = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 5000
+    });
+
+    const simPath = [
+      { lat: 12.919, lng: 77.620 },
+      { lat: 12.922, lng: 77.625 },
+      { lat: 12.925, lng: 77.630 },
+      { lat: 12.928, lng: 77.635 },
+      { lat: 12.932, lng: 77.640 },
+      { lat: 12.936, lng: 77.645 },
+      { lat: 12.940, lng: 77.650 },
+      { lat: 12.944, lng: 77.655 },
+      { lat: 12.948, lng: 77.658 },
+      { lat: 12.952, lng: 77.652 },
+      { lat: 12.956, lng: 77.652 },
+      { lat: 12.950, lng: 77.645 },
+      { lat: 12.942, lng: 77.638 },
+      { lat: 12.934, lng: 77.630 },
+      { lat: 12.926, lng: 77.625 }
+    ];
+    let simIdx = 0;
+    let lastLoc: any = null;
+
+    const intervalId = setInterval(async () => {
+      let lat = 0;
+      let lng = 0;
+      let rawSpeed: number | null | undefined = null;
+      let rawHeading: number | null | undefined = null;
+      let usingSim = false;
+
+      if (latestCoordsRef.current) {
+        lat = latestCoordsRef.current.lat;
+        lng = latestCoordsRef.current.lng;
+        rawSpeed = latestCoordsRef.current.speed;
+        rawHeading = latestCoordsRef.current.heading;
+      } else {
+        const pt = simPath[simIdx];
+        lat = pt.lat;
+        lng = pt.lng;
+        simIdx = (simIdx + 1) % simPath.length;
+        usingSim = true;
+      }
+
+      // Calculate speed and direction
+      let speedKmh = 0;
+      let directionStr = "Stationary";
+
+      if (lastLoc) {
+        const distM = getDistance(lastLoc.lat, lastLoc.lng, lat, lng);
+        
+        if (usingSim) {
+          speedKmh = Math.floor(45 + Math.random() * 15);
+        } else if (rawSpeed !== null && rawSpeed !== undefined) {
+          speedKmh = +(rawSpeed * 3.6).toFixed(1);
+        } else {
+          speedKmh = +(distM * 3.6).toFixed(1);
+        }
+
+        if (!usingSim && rawHeading !== null && rawHeading !== undefined) {
+          const headings = ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"];
+          directionStr = headings[Math.round(((rawHeading % 360) / 45)) % 8];
+        } else {
+          const dLat = lat - lastLoc.lat;
+          const dLng = lng - lastLoc.lng;
+          const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+          const normalized = (angle + 360) % 360;
+          const headings = ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"];
+          directionStr = headings[Math.round(normalized / 45) % 8];
+        }
+
+        setDistanceTraveled(prev => +(prev + (distM / 1000)).toFixed(3));
+      }
+
+      setCurrentSpeed(speedKmh);
+      setCurrentDirection(speedKmh > 1 ? directionStr : "Stationary");
+
+      let district = "Locating...";
+      let city = "Locating...";
+      let state = "Locating...";
+      let addressFetched = false;
+
+      if (!lastLoc || getDistance(lastLoc.lat, lastLoc.lng, lat, lng) > 50) {
+        const addr = await fetchAddress(lat, lng);
+        district = addr.district;
+        city = addr.city;
+        state = addr.state;
+        addressFetched = true;
+      } else if (lastLoc) {
+        district = lastLoc.district;
+        city = lastLoc.city;
+        state = lastLoc.state;
+        addressFetched = lastLoc.addressFetched;
+      }
+
+      const currentLocObj = {
+        lat,
+        lng,
+        district,
+        city,
+        state,
+        addressFetched,
+        timestamp: new Date().toLocaleTimeString(),
+        speed: speedKmh,
+        direction: speedKmh > 1 ? directionStr : "Stationary"
+      };
+
+      setUserLocation(currentLocObj);
+      lastLoc = currentLocObj;
+
+      setLocationHistory(prev => {
+        const newHist = [...prev, { lat, lng }];
+        if (newHist.length > 100) newHist.shift();
+        return newHist;
+      });
+
+      setLocalResources(prev => {
+        if (prev.length === 0) {
+          return generateLocalFacilities(lat, lng);
+        }
+        return prev;
+      });
+
+      // Geofencing Check
+      const floodPoly = getFloodPolygon(lat, lng);
+      const insideFlood = isPointInPolygon(lat, lng, floodPoly);
+      const landslideCircs = getLandslideCircles(lat, lng);
+      const insideLandslide = landslideCircs.some(c => getDistance(lat, lng, c.center[0], c.center[1]) < c.radius);
+      
+      if (insideFlood) {
+        setGeofenceAlert("⚠ GEOFENCE ALERT: You have entered a High Flood Risk Area! Avoid low-lying basins and move to higher ground immediately.");
+      } else if (insideLandslide) {
+        setGeofenceAlert("⚠ GEOFENCE ALERT: You have entered a Vulnerable Landslide Risk Zone! Keep watch for soil shifts and seek shelter.");
+      } else {
+        setGeofenceAlert(null);
+      }
+
+      // Route Optimization
+      const allShelters = [...resources, ...generateLocalFacilities(lat, lng)].filter(r => r.type === "Shelter");
+      if (allShelters.length > 0) {
+        let closest = allShelters[0];
+        let minDist = getDistance(lat, lng, closest.lat, closest.lng);
+        for (let i = 1; i < allShelters.length; i++) {
+          const d = getDistance(lat, lng, allShelters[i].lat, allShelters[i].lng);
+          if (d < minDist) {
+            minDist = d;
+            closest = allShelters[i];
+          }
+        }
+        
+        const intermediateLat = (lat + closest.lat) / 2 + 0.003;
+        const intermediateLng = (lng + closest.lng) / 2 - 0.003;
+        
+        setEvacuationPath([
+          [lat, lng],
+          [intermediateLat, intermediateLng],
+          [closest.lat, closest.lng]
+        ]);
+      }
+
+      // Send GPS Coordinate Update via WebSockets
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: "USER_GPS_UPDATE",
+          userId: "Officer-Mobile",
+          data: currentLocObj
+        }));
+      }
+
+    }, 1000);
+
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  // WebSocket Connection and Live Tracking Sync Effect
+  useEffect(() => {
+    let wsUrl = "ws://localhost:8000/ws";
+    let localTimer: any = null;
+    
+    const connectWs = () => {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("EcoShield React WebSocket Connected!");
+        if (localTimer) clearInterval(localTimer);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === "INIT_STATE" || data.event === "RESOURCE_UPDATE") {
+            if (data.resources) {
+              setResources(data.resources);
+            }
+            if (data.active_users) {
+              setActiveTrackedUsers(data.active_users);
+            }
+            if (data.online_count !== undefined) {
+              setOnlineCount(data.online_count);
+            }
+          } else if (data.event === "USER_GPS_UPDATE") {
+            if (data.active_users) {
+              setActiveTrackedUsers(data.active_users);
+            }
+            if (data.online_count !== undefined) {
+              setOnlineCount(data.online_count);
+            }
+            // Add to live telemetry feeds log widget
+            const userTrunc = data.userId.substring(0, 10);
+            const timestamp = data.data.timestamp || new Date().toLocaleTimeString();
+            const feedMsg = `[Live Tracking] ${userTrunc}: ${data.data.lat.toFixed(5)}, ${data.data.lng.toFixed(5)} at ${timestamp}`;
+            setLiveLocationFeed(prev => [feedMsg, ...prev.slice(0, 15)]);
+          }
+        } catch (e) {
+          console.error("WebSocket message parse error:", e);
+        }
+      };
+
+      ws.onerror = () => {
+        console.warn("WebSocket connection error. Standing by for local simulation.");
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket disconnected. Retrying in 5 seconds...");
+        setTimeout(connectWs, 5000);
+      };
+    };
+
+    connectWs();
+
+    // Local simulation fallback
+    localTimer = setInterval(() => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        setResources(prev => {
+          return prev.map(res => {
+            if (res.type !== "Shelter" && res.type !== "Fire Station") {
+              const shiftLat = (Math.random() - 0.5) * 0.0003;
+              const shiftLng = (Math.random() - 0.5) * 0.0003;
+              return {
+                ...res,
+                lat: res.lat + shiftLat,
+                lng: res.lng + shiftLng
+              };
+            }
+            return res;
+          });
+        });
+
+        setActiveTrackedUsers((prev: any) => {
+          const u1Lat = 12.934 + Math.sin(Date.now() / 10000) * 0.01;
+          const u1Lng = 77.618 + Math.cos(Date.now() / 10000) * 0.01;
+          const u2Lat = 12.956 + Math.cos(Date.now() / 8000) * 0.008;
+          const u2Lng = 77.652 + Math.sin(Date.now() / 8000) * 0.008;
+
+          return {
+            ...prev,
+            "BBMP-Rescue-01": { lat: u1Lat, lng: u1Lng, district: "Koramangala", timestamp: new Date().toLocaleTimeString(), speed: 38, direction: "East" },
+            "NDRF-Team-Bravo": { lat: u2Lat, lng: u2Lng, district: "Indiranagar", timestamp: new Date().toLocaleTimeString(), speed: 52, direction: "Northwest" }
+          };
+        });
+
+        const simulatedUsers = ["BBMP-Rescue-01", "NDRF-Team-Bravo"];
+        const selectedUser = simulatedUsers[Math.floor(Math.random() * simulatedUsers.length)];
+        const currentTimestamp = new Date().toLocaleTimeString();
+        const mockLat = 12.93 + (Math.random() - 0.5) * 0.03;
+        const mockLng = 77.62 + (Math.random() - 0.5) * 0.03;
+        const feedMsg = `[Mock Sim] ${selectedUser}: ${mockLat.toFixed(5)}, ${mockLng.toFixed(5)} at ${currentTimestamp}`;
+        setLiveLocationFeed(prev => [feedMsg, ...prev.slice(0, 15)]);
+        setOnlineCount(3);
+      }
+    }, 3000);
+
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+      if (localTimer) clearInterval(localTimer);
+    };
+  }, []);
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setPublicLat(position.coords.latitude);
+        setPublicLng(position.coords.longitude);
+        setPublicLocation(`Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`);
+        setIsLocating(false);
+      },
+      () => {
+        alert("Unable to retrieve your location. Please check your browser permissions.");
+        setIsLocating(false);
+      }
     );
   };
 
@@ -1003,6 +1579,12 @@ export default function App() {
           </button>
 
           <button 
+            onClick={() => setActiveTab("copilot")}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'copilot' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
+            <Bot className="h-4.5 w-4.5" /> EcoShield Copilot
+          </button>
+
+          <button 
             onClick={() => setActiveTab("environmental")}
             className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'environmental' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Wind className="h-4.5 w-4.5" /> Environmental Track
@@ -1080,13 +1662,55 @@ export default function App() {
 
           {activeTab === 'map' && (
             <div className="h-[calc(100vh-120px)]">
-              <GisMap reports={reports} resources={resources} darkMode={darkMode} />
+              <GisMap 
+                reports={reports} 
+                resources={resources} 
+                darkMode={darkMode}
+                userLocation={userLocation}
+                localResources={localResources}
+                mapAction={mapAction}
+                floodPolygon={userLocation ? getFloodPolygon(userLocation.lat, userLocation.lng) : []}
+                landslideCircles={userLocation ? getLandslideCircles(userLocation.lat, userLocation.lng) : []}
+                droughtCircle={userLocation ? getDroughtCircle(userLocation.lat, userLocation.lng) : null}
+                sensorAqi={sensorAqi}
+                locationHistory={locationHistory}
+                distanceTraveled={distanceTraveled}
+                currentSpeed={currentSpeed}
+                currentDirection={currentDirection}
+                followUser={followUser}
+                setFollowUser={setFollowUser}
+                onlineCount={onlineCount}
+                activeTrackedUsers={activeTrackedUsers}
+                liveLocationFeed={liveLocationFeed}
+                activeBaseMap={activeBaseMap}
+                setActiveBaseMap={setActiveBaseMap}
+                evacuationPath={evacuationPath}
+                geofenceAlert={geofenceAlert}
+                setGeofenceAlert={setGeofenceAlert}
+                showHeatmap={showHeatmap}
+                setShowHeatmap={setShowHeatmap}
+                heatmapType={heatmapType}
+                setHeatmapType={setHeatmapType}
+              />
             </div>
           )}
 
           {activeTab === 'predictions' && (
             <AiPrediction 
               riverLevel={riverLevel}
+            />
+          )}
+
+          {activeTab === 'copilot' && (
+            <CopilotCenter 
+              sensorAqi={sensorAqi} 
+              riverLevel={riverLevel} 
+              reservoirCapacity={reservoirCapacity} 
+              riskIndex={riskIndex} 
+              weather={weather}
+              resources={resources}
+              reports={reports}
+              userLocation={userLocation}
             />
           )}
 
@@ -1141,25 +1765,5 @@ export default function App() {
       {renderAiChatAssistant()}
     </div>
   );
-}  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setPublicLat(position.coords.latitude);
-        setPublicLng(position.coords.longitude);
-        setPublicLocation(`Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`);
-        setIsLocating(false);
-      },
-      () => {
-        alert("Unable to retrieve your location. Please check your browser permissions.");
-        setIsLocating(false);
-      }
-    );
-  };
-
-const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || '');
+}
   

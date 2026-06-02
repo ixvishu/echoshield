@@ -152,6 +152,211 @@
 
       const mapRef = useRef(null);
 
+      // Geolocation states
+      const [userLocation, setUserLocation] = useState(null);
+      const [localResources, setLocalResources] = useState([]);
+      const [mapAction, setMapAction] = useState(null);
+      
+      const latestCoordsRef = useRef(null);
+      const watchIdRef = useRef(null);
+      const hasCenteredOnLoadRef = useRef(false);
+      
+      const shelterMarkersRef = useRef(new Map());
+      const hospitalMarkersRef = useRef(new Map());
+      const userMarkerRef = useRef(null);
+
+      // Geocoding and distance helpers
+      const getMockAddress = (lat, lng) => {
+        if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+          return { district: "Koramangala", city: "Bengaluru", state: "Karnataka" };
+        }
+        return { district: "Local District", city: "Local City", state: "Local State" };
+      };
+
+      const fetchAddress = async (lat, lng) => {
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+            headers: {
+              'Accept-Language': 'en',
+              'User-Agent': 'EcoShield-Resilience-App'
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const address = data.address || {};
+            const district = address.suburb || address.neighbourhood || address.county || address.district || "Unknown District";
+            const city = address.city || address.town || address.village || "Unknown City";
+            const state = address.state || address.region || "Unknown State";
+            return { district, city, state };
+          }
+        } catch (e) {
+          console.error("Reverse geocoding failed, falling back to mock", e);
+        }
+        return getMockAddress(lat, lng);
+      };
+
+      const generateLocalFacilities = (lat, lng) => {
+        return [
+          { id: "LOC-HOSP-1", name: "Metro Trauma Hospital", type: "Hospital", status: "Active", location: "Nearby Area", lat: lat + 0.005, lng: lng - 0.004, contact: "+91 99000 11111" },
+          { id: "LOC-HOSP-2", name: "City Care Clinic", type: "Hospital", status: "Active", location: "Nearby Area", lat: lat - 0.006, lng: lng + 0.007, contact: "+91 99000 22222" },
+          { id: "LOC-SHEL-1", name: "Primary Emergency Shelter", type: "Shelter", status: "Active", location: "Nearby Area", lat: lat + 0.007, lng: lng + 0.005, contact: "+91 99000 33333" },
+          { id: "LOC-SHEL-2", name: "Community Relief Shelter", type: "Shelter", status: "Standby", location: "Nearby Area", lat: lat - 0.008, lng: lng - 0.006, contact: "+91 99000 44444" },
+          { id: "LOC-FIRE-1", name: "District Fire Station", type: "Fire Station", status: "Standby", location: "Nearby Area", lat: lat - 0.003, lng: lng - 0.002, contact: "+91 99000 55555" },
+          { id: "LOC-CAMP-1", name: "EcoShield Relief Camp Alpha", type: "Relief Camp", status: "Active", location: "Nearby Area", lat: lat + 0.009, lng: lng - 0.003, contact: "+91 99000 66666" },
+        ];
+      };
+
+      const getDistance = (lat1, lng1, lat2, lng2) => {
+        const R = 6371e3;
+        const phi1 = lat1 * Math.PI/180;
+        const phi2 = lat2 * Math.PI/180;
+        const deltaPhi = (lat2-lat1) * Math.PI/180;
+        const deltaLambda = (lng2-lng1) * Math.PI/180;
+        const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                  Math.cos(phi1) * Math.cos(phi2) *
+                  Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      };
+
+      const isPointInPolygon = (lat, lng, polygon) => {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+          const xi = polygon[i][0], yi = polygon[i][1];
+          const xj = polygon[j][0], yj = polygon[j][1];
+          const intersect = ((yi > lng) !== (yj > lng))
+              && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      };
+
+      const getFloodPolygon = (lat, lng) => {
+        if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+          return [
+            [12.942, 77.660], [12.945, 77.675], [12.930, 77.685],
+            [12.925, 77.670], [12.932, 77.658]
+          ];
+        }
+        return [
+          [lat + 0.004, lng + 0.004],
+          [lat + 0.004, lng - 0.004],
+          [lat - 0.004, lng - 0.004],
+          [lat - 0.004, lng + 0.004]
+        ];
+      };
+
+      const getLandslideCircles = (lat, lng) => {
+        if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+          return [
+            { center: [12.964, 77.640], radius: 400, name: "Indiranagar Tree Fall zone" },
+            { center: [12.917, 77.623], radius: 500, name: "Silk Board Waterlogging Hotspot" }
+          ];
+        }
+        return [
+          { center: [lat - 0.006, lng - 0.005], radius: 400, name: "Indiranagar Tree Fall zone" },
+          { center: [lat + 0.007, lng - 0.007], radius: 500, name: "Silk Board Waterlogging Hotspot" }
+        ];
+      };
+
+      const getDroughtCircle = (lat, lng) => {
+        if (lat >= 12.8 && lat <= 13.1 && lng >= 77.4 && lng <= 77.8) {
+          return { center: [13.03, 77.59], radius: 2500, name: "Water Scarcity Zone: North Bangalore" };
+        }
+        return { center: [lat - 0.010, lng + 0.008], radius: 2500, name: "Water Scarcity Zone" };
+      };
+
+      const findNearestShelter = (currentLat, currentLng, allFacilities) => {
+        const shelters = allFacilities.filter(f => f.type === 'Shelter');
+        if (shelters.length === 0) return null;
+        
+        let nearest = shelters[0];
+        let minDistance = getDistance(currentLat, currentLng, nearest.lat, nearest.lng);
+        
+        for (let i = 1; i < shelters.length; i++) {
+          const dist = getDistance(currentLat, currentLng, shelters[i].lat, shelters[i].lng);
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearest = shelters[i];
+          }
+        }
+        return { shelter: nearest, distance: minDistance };
+      };
+
+      // watchPosition effect
+      useEffect(() => {
+        if (!navigator.geolocation) return;
+
+        const handleSuccess = (position) => {
+          latestCoordsRef.current = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+        };
+
+        const handleError = (err) => {
+          console.error("watchPosition error in dashboard:", err.message);
+        };
+
+        watchIdRef.current = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
+        });
+
+        const intervalId = setInterval(async () => {
+          if (latestCoordsRef.current) {
+            const { lat, lng } = latestCoordsRef.current;
+            let district = "Locating...";
+            let city = "Locating...";
+            let state = "Locating...";
+            let addressFetched = false;
+
+            if (!userLocation || Math.abs(userLocation.lat - lat) > 0.0001 || Math.abs(userLocation.lng - lng) > 0.0001 || !userLocation.addressFetched) {
+              const addr = await fetchAddress(lat, lng);
+              district = addr.district;
+              city = addr.city;
+              state = addr.state;
+              addressFetched = true;
+            } else {
+              district = userLocation.district;
+              city = userLocation.city;
+              state = userLocation.state;
+              addressFetched = userLocation.addressFetched;
+            }
+
+            setUserLocation({ lat, lng, district, city, state, addressFetched });
+
+            setLocalResources(prev => {
+              if (prev.length === 0) {
+                return generateLocalFacilities(lat, lng);
+              }
+              return prev;
+            });
+          } else {
+            const fallbackLat = 12.952;
+            const fallbackLng = 77.638;
+            if (!userLocation) {
+              const addr = getMockAddress(fallbackLat, fallbackLng);
+              setUserLocation({
+                lat: fallbackLat,
+                lng: fallbackLng,
+                district: addr.district,
+                city: addr.city,
+                state: addr.state,
+                addressFetched: true
+              });
+              setLocalResources(generateLocalFacilities(fallbackLat, fallbackLng));
+            }
+          }
+        }, 5000);
+
+        return () => {
+          if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+          clearInterval(intervalId);
+        };
+      }, [userLocation]);
+
       // Handle Theme Change – uses CSS custom property data-theme approach
       useEffect(() => {
         const root = document.documentElement;
@@ -289,6 +494,23 @@
         setChatMessages(prev => [...prev, userMsg]);
         setChatInput("");
         setIsTyping(true);
+
+        const query = text.toLowerCase();
+        const isWhereAmI = query.includes("where am i");
+        const isFloodZone = query.includes("flood zone") || query.includes("am i in a flood") || query.includes("flood risk");
+        const isNearestShelter = query.includes("nearest shelter") || query.includes("show shelter") || query.includes("find shelter");
+        const isNearbyHospitals = query.includes("nearby hospital") || query.includes("show hospital") || query.includes("find hospital") || query.includes("show nearby hospital") || query.includes("nearby hospitals") || query.includes("show hospitals");
+
+        if (isNearestShelter) {
+          setActiveTab("map");
+          setMapAction({ type: 'show_shelter', timestamp: Date.now() });
+        } else if (isNearbyHospitals) {
+          setActiveTab("map");
+          setMapAction({ type: 'show_hospitals', timestamp: Date.now() });
+        } else if (isWhereAmI || isFloodZone) {
+          setActiveTab("map");
+          setMapAction({ type: 'center_user', timestamp: Date.now() });
+        }
         
         setTimeout(() => {
           const aiText = getAiResponse(text);
@@ -300,6 +522,101 @@
 
       const getAiResponse = (userText) => {
         const text = userText.toLowerCase();
+        
+        if (text.includes("where am i")) {
+          if (userLocation) {
+            const lat = userLocation.lat;
+            const lng = userLocation.lng;
+            const allRes = [...resources, ...localResources];
+            const nearestInfo = findNearestShelter(lat, lng, allRes);
+            const nearestName = nearestInfo ? nearestInfo.shelter.name : "None";
+            const nearestDist = nearestInfo ? (nearestInfo.distance / 1000).toFixed(2) + " km" : "N/A";
+            
+            const floodPoly = getFloodPolygon(lat, lng);
+            const isInsideFlood = isPointInPolygon(lat, lng, floodPoly);
+
+            return `<div class="space-y-2">
+              <div class="font-bold border-b border-white/10 pb-1 mb-2 text-cyan-400"><i class="fa-solid fa-location-crosshairs mr-1"></i> Live GPS Telemetry</div>
+              <div>Coordinates: <span class="font-bold text-white">${lat.toFixed(5)}, ${lng.toFixed(5)}</span></div>
+              <div>Address: <span class="font-bold text-white">${userLocation.district}, ${userLocation.city}, ${userLocation.state}</span></div>
+              <div class="bg-slate-900/50 p-2 rounded text-[10px]">
+                Flood Risk: <span class="font-bold ${isInsideFlood ? 'text-red-400' : 'text-slate-400'}">${isInsideFlood ? 'CRITICAL BASIN' : 'Safe'}</span><br/>
+                Nearest Shelter: <span class="font-bold text-emerald-450">${nearestName}</span> (${nearestDist} away)
+              </div>
+            </div>`;
+          }
+          return "Obtaining GPS lock. Please wait 5 seconds and request coordinates again.";
+        }
+
+        if (text.includes("flood zone") || text.includes("am i in a flood") || text.includes("flood risk")) {
+          if (userLocation) {
+            const lat = userLocation.lat;
+            const lng = userLocation.lng;
+            const floodPoly = getFloodPolygon(lat, lng);
+            const isInsideFlood = isPointInPolygon(lat, lng, floodPoly);
+            const nearestInfo = findNearestShelter(lat, lng, [...resources, ...localResources]);
+            const nearestName = nearestInfo ? nearestInfo.shelter.name : "None";
+            const nearestDist = nearestInfo ? (nearestInfo.distance / 1000).toFixed(2) + " km" : "N/A";
+
+            if (isInsideFlood) {
+              return `<div class="space-y-2 text-red-400">
+                <div class="font-bold border-b border-red-500/20 pb-1 mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i> FLOOD HAZARD ALERT</div>
+                <p class="text-white text-xs">WARNING: Your current geolocated coordinates are inside the active <b>Flood-Prone Overlays Zone</b>.</p>
+                <div class="bg-red-955/20 border border-red-900/40 p-2 rounded text-[10px] text-slate-350">
+                  Recommendation: Evacuate immediately to the nearest safe shelter:<br/>
+                  <b>${nearestName}</b> (${nearestDist} away, Contact: ${nearestInfo.shelter.contact})
+                </div>
+              </div>`;
+            } else {
+              return `<div class="space-y-2 text-emerald-450">
+                <div class="font-bold border-b border-emerald-500/20 pb-1 mb-2"><i class="fa-solid fa-circle-check mr-1"></i> FLOOD STATUS: SAFE</div>
+                <p class="text-slate-300 text-xs">Your current coordinates are in a safe zone outside active flood boundaries.</p>
+              </div>`;
+            }
+          }
+          return "Awaiting geolocation coordinate lock. Please check again.";
+        }
+
+        if (text.includes("nearest shelter") || text.includes("show shelter") || text.includes("find shelter")) {
+          if (userLocation) {
+            const lat = userLocation.lat;
+            const lng = userLocation.lng;
+            const nearestInfo = findNearestShelter(lat, lng, [...resources, ...localResources]);
+            if (nearestInfo) {
+              return `<div class="space-y-2">
+                <div class="font-bold border-b border-white/10 pb-1 mb-2 text-emerald-450"><i class="fa-solid fa-house-circle-exclamation mr-1"></i> Closest Relief Shelter</div>
+                <div>Name: <span class="font-bold text-white">${nearestInfo.shelter.name}</span></div>
+                <div>Distance: <span class="font-bold text-white">${(nearestInfo.distance / 1000).toFixed(2)} km</span></div>
+                <div class="bg-slate-900/50 p-2 rounded text-[10px] text-slate-400">
+                  Location: ${nearestInfo.shelter.location}<br/>
+                  Contact Details: <b>${nearestInfo.shelter.contact}</b>
+                </div>
+              </div>`;
+            }
+          }
+          return "Awaiting GPS tracking stream.";
+        }
+
+        if (text.includes("nearby hospital") || text.includes("show hospital") || text.includes("find hospital") || text.includes("show nearby hospital") || text.includes("nearby hospitals") || text.includes("show hospitals")) {
+          if (userLocation) {
+            const lat = userLocation.lat;
+            const lng = userLocation.lng;
+            const allRes = [...resources, ...localResources];
+            const hospitals = allRes.filter(r => r.type === 'Hospital');
+            const list = hospitals.map(h => {
+              const d = (getDistance(lat, lng, h.lat, h.lng) / 1000).toFixed(2);
+              return `<li><b>${h.name}</b> (${d} km, Contact: ${h.contact})</li>`;
+            }).join("");
+
+            return `<div class="space-y-2">
+              <div class="font-bold border-b border-white/10 pb-1 mb-2 text-red-400"><i class="fa-solid fa-circle-h mr-1"></i> Nearby Medical Facilities</div>
+              <ul class="list-disc pl-4 space-y-1 text-[10px] text-slate-350 font-mono">
+                ${list}
+              </ul>
+            </div>`;
+          }
+          return "Awaiting GPS tracking stream.";
+        }
         
         if (text.includes('aqi') || text.includes('air quality') || text.includes('peenya') || text.includes('pollution')) {
           const status = sensorAqi > 200 ? 'UNHEALTHY' : sensorAqi > 100 ? 'MODERATE' : 'GOOD';
@@ -342,7 +659,7 @@
         if (text.includes('help') || text.includes('features') || text.includes('website')) {
           return `<div class="space-y-2">
             <div class="font-bold text-cyan-400">EcoShield AI System Architecture:</div>
-            <ul class="list-disc pl-4 space-y-1 text-[10px] text-slate-300">
+            <ul class="list-disc pl-4 space-y-1 text-[10px] text-slate-350">
               <li>Real-time telemetry (AQI, Lake Depth, Weather)</li>
               <li>Interactive GIS threat mapping</li>
               <li>AI predictive river-level models</li>
@@ -364,10 +681,12 @@
           mapRef.current = null;
         }
         
-        // Ensure container is clean
         container._leaflet_id = null;
 
-        const map = L.map(containerId).setView([12.9716, 77.5946], 12);
+        const initialLat = userLocation ? userLocation.lat : 12.9716;
+        const initialLng = userLocation ? userLocation.lng : 77.5946;
+
+        const map = L.map(containerId).setView([initialLat, initialLng], 12);
         mapRef.current = map;
 
         const tileUrl = darkMode
@@ -378,45 +697,128 @@
           attribution: '&copy; CARTO'
         }).addTo(map);
 
+        const latVal = userLocation ? userLocation.lat : 12.952;
+        const lngVal = userLocation ? userLocation.lng : 77.638;
+
         if (mapLayerFlood) {
-          const floodCoords = [
-            [12.942, 77.660], [12.945, 77.675], [12.930, 77.685],
-            [12.925, 77.670], [12.932, 77.658]
-          ];
+          const floodCoords = getFloodPolygon(latVal, lngVal);
           L.polygon(floodCoords, {
             color: '#2563eb',
             fillColor: '#3b82f6',
             fillOpacity: 0.25,
             weight: 1.5
-          }).addTo(map).bindPopup("<b>Bellandur Lake Flooding Boundary</b>");
+          }).addTo(map).bindPopup("<b>Flood-Prone Overlays Zone A</b>");
         }
 
         if (mapLayerLandslide) {
-          L.circle([12.964, 77.640], { color: '#d97706', fillColor: '#f59e0b', fillOpacity: 0.2, radius: 400 }).addTo(map).bindPopup("<b>Indiranagar Tree Fall zone</b>");
-          L.circle([12.917, 77.623], { color: '#dc2626', fillColor: '#ef4444', fillOpacity: 0.2, radius: 500 }).addTo(map).bindPopup("<b>Silk Board Waterlogging Hotspot</b>");
-        }
-
-        if (mapLayerDrought) {
-          L.circle([13.03, 77.59], { color: '#db2777', fillColor: '#ec4899', fillOpacity: 0.1, radius: 2500 }).addTo(map).bindPopup("<b>Water Scarcity Zone: North Bangalore</b>");
-        }
-
-        if (mapLayerInfrastructure) {
-          resources.forEach(res => {
-            const color = res.type === 'Rescue Team' ? '#7c3aed' : res.type === 'Ambulance' ? '#dc2626' : '#16a34a';
-            const iconHtml = `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid white;"></div>`;
-            const customIcon = L.divIcon({ html: iconHtml, className: 'corp-icon', iconSize: [12, 12] });
-            L.marker([res.lat, res.lng], { icon: customIcon }).addTo(map).bindPopup(`<b>${res.name}</b><br>${res.location}`);
+          const circles = getLandslideCircles(latVal, lngVal);
+          circles.forEach(c => {
+            L.circle(c.center, { color: '#d97706', fillColor: '#f59e0b', fillOpacity: 0.2, radius: c.radius }).addTo(map).bindPopup(`<b>${c.name}</b>`);
           });
         }
 
+        if (mapLayerDrought) {
+          const c = getDroughtCircle(latVal, lngVal);
+          L.circle(c.center, { color: '#db2777', fillColor: '#ec4899', fillOpacity: 0.1, radius: c.radius }).addTo(map).bindPopup(`<b>${c.name}</b>`);
+        }
+
+        if (mapLayerInfrastructure) {
+          shelterMarkersRef.current.clear();
+          hospitalMarkersRef.current.clear();
+          const allRes = [...resources, ...localResources];
+          allRes.forEach(res => {
+            let color = '#7c3aed';
+            let iconHtml = '';
+            const isSpecial = ['Hospital', 'Shelter', 'Relief Camp', 'Fire Station'].includes(res.type);
+
+            if (res.type === 'Hospital') {
+              color = '#dc2626';
+              iconHtml = `<div style="background-color: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 9px; box-shadow: 0 0 5px ${color};">H</div>`;
+            } else if (res.type === 'Shelter') {
+              color = '#16a34a';
+              iconHtml = `<div style="background-color: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 9px; box-shadow: 0 0 5px ${color};">S</div>`;
+            } else if (res.type === 'Relief Camp') {
+              color = '#2563eb';
+              iconHtml = `<div style="background-color: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 9px; box-shadow: 0 0 5px ${color};">C</div>`;
+            } else if (res.type === 'Fire Station') {
+              color = '#ea580c';
+              iconHtml = `<div style="background-color: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 9px; box-shadow: 0 0 5px ${color};">F</div>`;
+            } else {
+              color = res.type === 'Rescue Team' ? '#7c3aed' : res.type === 'Ambulance' ? '#dc2626' : '#16a34a';
+              iconHtml = `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid white;"></div>`;
+            }
+
+            const customIcon = L.divIcon({
+              html: iconHtml,
+              className: isSpecial ? 'custom-special-pin' : 'corp-icon',
+              iconSize: isSpecial ? [18, 18] : [12, 12],
+              iconAnchor: isSpecial ? [9, 9] : [6, 6]
+            });
+
+            const marker = L.marker([res.lat, res.lng], { icon: customIcon })
+              .addTo(map)
+              .bindPopup(`<b>${res.name}</b><br>Type: <b>${res.type}</b><br>Contact: ${res.contact}`);
+              
+            if (res.type === 'Shelter') {
+              shelterMarkersRef.current.set(res.id, marker);
+            } else if (res.type === 'Hospital') {
+              hospitalMarkersRef.current.set(res.id, marker);
+            }
+          });
+        }
+
+        // Draw citizen reports
         reports.forEach(rep => {
           const color = rep.status === 'Pending' ? '#dc2626' : rep.status === 'Verified' ? '#d97706' : '#16a34a';
           const iconHtml = `<div style="background-color: ${color}; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid white;"></div>`;
           const customIcon = L.divIcon({ html: iconHtml, className: 'corp-rep-icon', iconSize: [10, 10] });
           L.marker([rep.lat, rep.lng], { icon: customIcon }).addTo(map).bindPopup(`<b>Incident: ${rep.type}</b><br>${rep.location}`);
         });
+
+        // Draw user marker if available
+        if (userLocation) {
+          const userIcon = L.divIcon({
+            html: `<div style="
+              width: 16px; 
+              height: 16px; 
+              background-color: #2563eb; 
+              border: 2.5px solid white; 
+              border-radius: 50%; 
+              box-shadow: 0 0 10px #2563eb, 0 0 0 5px rgba(37, 99, 235, 0.3);
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                top: -5px;
+                left: -5px;
+                width: 22px;
+                height: 22px;
+                border: 2.5px solid rgba(37, 99, 235, 0.5);
+                border-radius: 50%;
+                animation: pulse-ring 1.8s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+                box-sizing: border-box;
+              "></div>
+            </div>`,
+            className: 'user-loc-pin',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+
+          const uMarker = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+            .addTo(map)
+            .bindPopup(`<b>You are here</b><br>${userLocation.district}, ${userLocation.city}<br>Lat: ${userLocation.lat.toFixed(5)}<br>Lng: ${userLocation.lng.toFixed(5)}`);
+          
+          userMarkerRef.current = uMarker;
+
+          if (!hasCenteredOnLoadRef.current) {
+            map.setView([userLocation.lat, userLocation.lng], 14);
+            hasCenteredOnLoadRef.current = true;
+            uMarker.openPopup();
+          }
+        }
       };
 
+      // Main map creation effect
       useEffect(() => {
         if (!isLoggedIn) return;
         
@@ -434,8 +836,132 @@
             try { mapRef.current.remove(); } catch(e) {}
             mapRef.current = null;
           }
+          userMarkerRef.current = null;
+          hasCenteredOnLoadRef.current = false;
         };
-      }, [activeTab, mapLayerFlood, mapLayerLandslide, mapLayerDrought, mapLayerInfrastructure, reports, resources, darkMode, isLoggedIn]);
+      }, [activeTab, mapLayerFlood, mapLayerLandslide, mapLayerDrought, mapLayerInfrastructure, reports, darkMode, isLoggedIn]);
+
+      // User location marker updating effect
+      useEffect(() => {
+        if (!mapRef.current || !userLocation) return;
+        
+        const map = mapRef.current;
+        const newPos = [userLocation.lat, userLocation.lng];
+
+        const animateMarker = (marker, fromLatLng, toLatLng, duration = 1000) => {
+          const startTime = performance.now();
+          const step = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+            const lat = fromLatLng.lat + (toLatLng.lat - fromLatLng.lat) * ease;
+            const lng = fromLatLng.lng + (toLatLng.lng - fromLatLng.lng) * ease;
+            marker.setLatLng([lat, lng]);
+            if (progress < 1) {
+              requestAnimationFrame(step);
+            }
+          };
+          requestAnimationFrame(step);
+        };
+
+        if (!userMarkerRef.current) {
+          const userIcon = L.divIcon({
+            html: `<div style="
+              width: 16px; 
+              height: 16px; 
+              background-color: #2563eb; 
+              border: 2.5px solid white; 
+              border-radius: 50%; 
+              box-shadow: 0 0 10px #2563eb, 0 0 0 5px rgba(37, 99, 235, 0.3);
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                top: -5px;
+                left: -5px;
+                width: 22px;
+                height: 22px;
+                border: 2.5px solid rgba(37, 99, 235, 0.5);
+                border-radius: 50%;
+                animation: pulse-ring 1.8s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+                box-sizing: border-box;
+              "></div>
+            </div>`,
+            className: 'user-loc-pin',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+
+          const uMarker = L.marker(newPos, { icon: userIcon })
+            .addTo(map)
+            .bindPopup(`<b>You are here</b><br>${userLocation.district}, ${userLocation.city}<br>Lat: ${userLocation.lat.toFixed(5)}<br>Lng: ${userLocation.lng.toFixed(5)}`);
+          
+          userMarkerRef.current = uMarker;
+        } else {
+          const oldLatLng = userMarkerRef.current.getLatLng();
+          const newLatLng = L.latLng(userLocation.lat, userLocation.lng);
+          animateMarker(userMarkerRef.current, oldLatLng, newLatLng, 1000);
+          userMarkerRef.current.setPopupContent(`<b>You are here</b><br>${userLocation.district}, ${userLocation.city}<br>Lat: ${userLocation.lat.toFixed(5)}<br>Lng: ${userLocation.lng.toFixed(5)}`);
+        }
+
+        if (!hasCenteredOnLoadRef.current) {
+          map.setView(newPos, 14);
+          hasCenteredOnLoadRef.current = true;
+          userMarkerRef.current.openPopup();
+        }
+      }, [userLocation, isLoggedIn]);
+
+      // Map actions effect
+      useEffect(() => {
+        if (!mapRef.current || !mapAction) return;
+        const map = mapRef.current;
+
+        if (mapAction.type === 'center_user') {
+          if (userLocation) {
+            map.setView([userLocation.lat, userLocation.lng], 14);
+            userMarkerRef.current?.openPopup();
+          }
+        } else if (mapAction.type === 'show_shelter') {
+          const allRes = [...resources, ...localResources];
+          const shelters = allRes.filter(r => r.type === 'Shelter');
+          if (shelters.length > 0 && userLocation) {
+            let closest = shelters[0];
+            let minDist = getDistance(userLocation.lat, userLocation.lng, closest.lat, closest.lng);
+            for (let i = 1; i < shelters.length; i++) {
+              const dist = getDistance(userLocation.lat, userLocation.lng, shelters[i].lat, shelters[i].lng);
+              if (dist < minDist) {
+                minDist = dist;
+                closest = shelters[i];
+              }
+            }
+            map.setView([closest.lat, closest.lng], 15);
+            const marker = shelterMarkersRef.current.get(closest.id);
+            marker?.openPopup();
+          }
+        } else if (mapAction.type === 'show_hospitals') {
+          const allRes = [...resources, ...localResources];
+          const hospitals = allRes.filter(r => r.type === 'Hospital');
+          if (hospitals.length > 0) {
+            const bounds = L.latLngBounds(hospitals.map(h => [h.lat, h.lng]));
+            if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+            
+            if (userLocation) {
+              let closest = hospitals[0];
+              let minDist = getDistance(userLocation.lat, userLocation.lng, closest.lat, closest.lng);
+              for (let i = 1; i < hospitals.length; i++) {
+                const dist = getDistance(userLocation.lat, userLocation.lng, hospitals[i].lat, hospitals[i].lng);
+                if (dist < minDist) {
+                  minDist = dist;
+                  closest = hospitals[i];
+                }
+              }
+              const marker = hospitalMarkersRef.current.get(closest.id);
+              marker?.openPopup();
+            }
+          }
+        }
+      }, [mapAction]);
 
       // Chart JS Initialization
       useEffect(() => {
@@ -1488,12 +2014,143 @@
                       
                       <div className="space-y-1.5">
                         <label className="theme-text-muted block">Console Search coordinates</label>
-                        <input type="text" placeholder="12.97, 77.59" className="theme-surface border theme-border px-2.5 py-1.5 rounded w-full focus:outline-none" />
+                        <div className="flex gap-2">
+                          <input id="search-coords-input" type="text" defaultValue="12.97, 77.59" className="theme-surface border theme-border px-2.5 py-1.5 rounded w-full focus:outline-none" />
+                          <button onClick={() => {
+                            const val = document.getElementById('search-coords-input')?.value;
+                            if (val && mapRef.current) {
+                              const parts = val.split(',').map(Number);
+                              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                                mapRef.current.setView([parts[0], parts[1]], 14);
+                              }
+                            }
+                          }} className="bg-cyan-605 hover:bg-cyan-500 px-3 rounded text-white"><i className="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                      </div>
+
+                      {/* Geolocation Control Deck */}
+                      <div className="pt-3 border-t border-slate-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] theme-text-muted font-semibold uppercase tracking-wider font-mono">Geolocation Node</span>
+                          <span className="flex items-center gap-1 text-[9px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded font-mono font-bold uppercase">
+                            <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse"></span> Active
+                          </span>
+                        </div>
+                        
+                        {userLocation ? (
+                          <div className="space-y-2 theme-chip p-2.5 rounded border theme-border">
+                            <div className="text-[11px] font-bold text-white leading-tight">
+                              {userLocation.district}, {userLocation.city}
+                            </div>
+                            <div className="text-[9px] theme-text-muted font-mono">
+                              {userLocation.state} | {userLocation.lat.toFixed(5)}, {userLocation.lng.toFixed(5)}
+                            </div>
+                            
+                            {/* Risk Indicators */}
+                            {(() => {
+                              const latVal = userLocation.lat;
+                              const lngVal = userLocation.lng;
+                              const floodPoly = getFloodPolygon(latVal, lngVal);
+                              const insideFlood = isPointInPolygon(latVal, lngVal, floodPoly);
+                              
+                              const landslideCircs = getLandslideCircles(latVal, lngVal);
+                              const insideLandslide = landslideCircs.some(c => getDistance(latVal, lngVal, c.center[0], c.center[1]) < c.radius);
+                              
+                              const droughtCirc = getDroughtCircle(latVal, lngVal);
+                              const insideDrought = getDistance(latVal, lngVal, droughtCirc.center[0], droughtCirc.center[1]) < droughtCirc.radius;
+
+                              const allRes = [...resources, ...localResources];
+                              const nearestInfo = findNearestShelter(latVal, lngVal, allRes);
+                              const nearestName = nearestInfo ? nearestInfo.shelter.name : "None";
+                              const nearestDistVal = nearestInfo ? (nearestInfo.distance / 1000).toFixed(2) : "N/A";
+                              const nearestContact = nearestInfo ? nearestInfo.shelter.contact : "";
+
+                              return (
+                                <React.Fragment>
+                                  <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t theme-border text-[9px]">
+                                    <div>
+                                      <div className="theme-text-muted font-semibold mb-0.5">Flood Zone</div>
+                                      <span className={`px-1.5 py-0.5 rounded font-bold uppercase leading-none inline-block ${
+                                        insideFlood ? 'bg-blue-950 border border-blue-800 text-blue-400' : 'bg-slate-900 border theme-border text-slate-400'
+                                      }`}>
+                                        {insideFlood ? 'Inside' : 'Safe'}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <div className="theme-text-muted font-semibold mb-0.5">Landslide</div>
+                                      <span className={`px-1.5 py-0.5 rounded font-bold uppercase leading-none inline-block ${
+                                        insideLandslide ? 'bg-orange-950 border border-orange-850 text-orange-400' : 'bg-slate-900 border theme-border text-slate-400'
+                                      }`}>
+                                        {insideLandslide ? 'High' : 'Safe'}
+                                      </span>
+                                    </div>
+                                    <div className="mt-1">
+                                      <div className="theme-text-muted font-semibold mb-0.5">Drought</div>
+                                      <span className={`px-1.5 py-0.5 rounded font-bold uppercase leading-none inline-block ${
+                                        insideDrought ? 'bg-pink-950 border border-pink-855 text-pink-400' : 'bg-slate-900 border theme-border text-slate-400'
+                                      }`}>
+                                        {insideDrought ? 'High' : 'Safe'}
+                                      </span>
+                                    </div>
+                                    <div className="mt-1">
+                                      <div className="theme-text-muted font-semibold mb-0.5">Local AQI</div>
+                                      <span className={`px-1.5 py-0.5 rounded font-bold uppercase leading-none inline-block ${
+                                        sensorAqi > 200 ? 'bg-red-955 border border-red-900 text-red-400' : sensorAqi > 100 ? 'bg-amber-955 border border-amber-900 text-amber-400' : 'bg-emerald-955 border border-emerald-900 text-emerald-450'
+                                      }`}>
+                                        {sensorAqi}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {nearestInfo && (
+                                    <div className="pt-2 border-t theme-border text-[9px] space-y-0.5">
+                                      <div className="theme-text-muted font-semibold uppercase tracking-wider mb-1">Nearest Safe Shelter</div>
+                                      <div className="font-bold text-emerald-400">{nearestName}</div>
+                                      <div className="text-slate-305">Distance: {nearestDistVal} km</div>
+                                      <div className="text-slate-500 font-mono text-[8px]">Contact: {nearestContact}</div>
+                                    </div>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] theme-text-muted italic p-2 bg-[#090d16]/30 rounded border border-dashed theme-border text-center">
+                            Awaiting GPS coordinate stream lock...
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 text-xs pt-2 border-t theme-border">
+                        <span className="theme-text-muted font-semibold block mb-1">Interactive Elements:</span>
+                        <div className="space-y-1.5 text-slate-355 font-mono text-[10px]">
+                          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-red-500"></div> Pending Reports</div>
+                          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-amber-500"></div> Dispatched Assets</div>
+                          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-emerald-500"></div> Relief Shelters</div>
+                          <div className="flex items-center gap-2"><div className="h-2.5 w-2.5 rounded-full bg-blue-500"></div> Your Location (Pulsing)</div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="lg:col-span-3 theme-card p-2 rounded border theme-border shadow-sm h-[500px]">
+                    <div className="lg:col-span-3 theme-card p-2 rounded border theme-border shadow-sm h-[500px] relative">
                       <div id="gis-map" className="h-full rounded theme-surface"></div>
+                      
+                      {/* Locate Me Floating Action Button */}
+                      {userLocation && (
+                        <button 
+                          onClick={() => {
+                            if (mapRef.current) {
+                              mapRef.current.setView([userLocation.lat, userLocation.lng], 14);
+                              userMarkerRef.current?.openPopup();
+                            }
+                          }}
+                          className="absolute bottom-6 right-6 z-[1000] bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-full shadow-2xl border border-cyan-500/30 transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+                          title="Locate Me"
+                          style={{ width: '40px', height: '40px' }}
+                        >
+                          <i className="fa-solid fa-location-arrow transform -rotate-45"></i>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
