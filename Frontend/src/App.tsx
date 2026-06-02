@@ -253,6 +253,7 @@ export default function App() {
   const [weather, setWeather] = useState({ temp: 38.5, hum: 45, rain: 12, wind: 14.5 });
 
   const [darkMode, setDarkMode] = useState<boolean>(true);
+  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || '');
   const [chatOpen, setChatOpen] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; time: string }>>([
     { sender: 'ai', text: "Hello! I am EcoShield's AI Resilience Assistant. How can I help you coordinate district environmental updates today?", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
