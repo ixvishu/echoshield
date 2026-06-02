@@ -1,0 +1,2496 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoShield AI – Climate Resilience & Environmental Intelligence Platform</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts - Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- React & ReactDOM UMD -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel compiler for inline JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+  /* ============================================
+     THEME VARIABLES – data-theme="dark" / "light"
+     Applied via JavaScript on <html> element
+     ============================================ */
+  :root {
+    /* Dark mode defaults */
+    --bg-base:        #080d15;
+    --bg-surface:     #0f172a;
+    --bg-card:        #111827;
+    --bg-overlay:     rgba(8,13,24,0.7);
+    --bg-nav:         #0b1120;
+    --bg-header:      rgba(3,7,18,0.85);
+    --bg-input:       rgba(11,15,23,0.8);
+    --bg-bulletin:    #020508;
+    --bg-chip:        #1e293b;
+
+    --border-base:    rgba(255,255,255,0.08);
+    --border-muted:   rgba(255,255,255,0.05);
+    --border-subtle:  #1e293b;
+
+    --text-primary:   #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted:     #64748b;
+    --text-heading:   #ffffff;
+
+    --shadow-card:    0 20px 50px rgba(0,0,0,0.4);
+    --chat-ai-bg:     #1e293b;
+    --chat-ai-border: #334155;
+
+    --scroll-thumb:   rgba(255,255,255,0.12);
+    --scroll-track:   transparent;
+
+    --wave-bg:        #111827;
+    --nav-active-bg:  rgba(30,41,59,0.8);
+    --sidebar-text:   #94a3b8;
+  }
+
+  html[data-theme="light"] {
+    --bg-base:        #f1f5f9;
+    --bg-surface:     #ffffff;
+    --bg-card:        #ffffff;
+    --bg-overlay:     rgba(255,255,255,0.85);
+    --bg-nav:         #ffffff;
+    --bg-header:      rgba(255,255,255,0.95);
+    --bg-input:       #ffffff;
+    --bg-bulletin:    #1e3a5f;
+    --bg-chip:        #e2e8f0;
+
+    --border-base:    #cbd5e1;
+    --border-muted:   #e2e8f0;
+    --border-subtle:  #e2e8f0;
+
+    --text-primary:   #0f172a;
+    --text-secondary: #475569;
+    --text-muted:     #64748b;
+    --text-heading:   #0f172a;
+
+    --shadow-card:    0 4px 24px rgba(0,0,0,0.08);
+    --chat-ai-bg:     #f8fafc;
+    --chat-ai-border: #e2e8f0;
+
+    --scroll-thumb:   rgba(0,0,0,0.15);
+    --scroll-track:   rgba(0,0,0,0.02);
+
+    --wave-bg:        #e0f2fe;
+    --nav-active-bg:  #eff6ff;
+    --sidebar-text:   #374151;
+  }
+
+  /* ============================================
+     APPLY THEME VARIABLES TO ELEMENTS
+     ============================================ */
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-base) !important;
+    color: var(--text-primary) !important;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-heading);
+  }
+
+  /* Live bulletin banner */
+  .theme-bulletin {
+    background-color: var(--bg-bulletin) !important;
+  }
+
+  /* All panel/card surfaces */
+  .theme-surface {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-base) !important;
+    color: var(--text-primary) !important;
+  }
+  .theme-card {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-base) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-card) !important;
+  }
+  .theme-overlay {
+    background: var(--bg-overlay) !important;
+    border-color: var(--border-base) !important;
+  }
+  .theme-header {
+    background: var(--bg-header) !important;
+    border-color: var(--border-subtle) !important;
+    backdrop-filter: blur(12px);
+  }
+  .theme-nav {
+    background-color: var(--bg-nav) !important;
+    border-color: var(--border-subtle) !important;
+  }
+  .theme-input {
+    background-color: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-base) !important;
+  }
+  .theme-input::placeholder {
+    color: var(--text-muted) !important;
+  }
+  .theme-chip {
+    background-color: var(--bg-chip) !important;
+    border-color: var(--border-subtle) !important;
+    color: var(--text-secondary) !important;
+  }
+  .theme-text-primary   { color: var(--text-primary)   !important; }
+  .theme-text-secondary { color: var(--text-secondary) !important; }
+  .theme-text-muted     { color: var(--text-muted)     !important; }
+  .theme-border         { border-color: var(--border-base)   !important; }
+  .theme-border-subtle  { border-color: var(--border-subtle) !important; }
+
+  .theme-nav-active {
+    background-color: var(--nav-active-bg) !important;
+  }
+  .theme-sidebar-text {
+    color: var(--sidebar-text) !important;
+  }
+
+  /* Chat panel */
+  .theme-chat-window {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-base) !important;
+  }
+  .theme-chat-header {
+    background-color: var(--bg-nav) !important;
+    border-color: var(--border-subtle) !important;
+  }
+  .theme-chat-ai-bubble {
+    background-color: var(--chat-ai-bg) !important;
+    border-color: var(--chat-ai-border) !important;
+    color: var(--text-secondary) !important;
+  }
+  .theme-chat-input-bar {
+    background-color: var(--bg-nav) !important;
+    border-color: var(--border-subtle) !important;
+  }
+  .theme-chat-input {
+    background-color: var(--bg-chip) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-base) !important;
+  }
+  .theme-chat-input::placeholder {
+    color: var(--text-muted) !important;
+  }
+
+  /* Water wave */
+  .water-wave {
+    position: relative;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #2563eb;
+    background: var(--wave-bg);
+    transition: background 0.25s;
+  }
+  .water-wave .liquid {
+    position: absolute; left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: #2563eb;
+    border-radius: 50%;
+    transition: top 0.5s ease-in-out;
+  }
+  .water-wave .liquid::before,
+  .water-wave .liquid::after {
+    content: '';
+    position: absolute;
+    width: 200%; height: 200%;
+    top: -150%; left: -50%;
+    background: var(--wave-bg);
+    border-radius: 45%;
+    animation: wave 12s linear infinite;
+  }
+  .water-wave .liquid::after {
+    background: rgba(37,99,235,0.4);
+    border-radius: 40%;
+    animation: wave 18s linear infinite;
+    top: -145%;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--scroll-track); }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
+
+  /* Grid background */
+  .grid-bg {
+    background-size: 50px 50px;
+  }
+  html[data-theme="dark"] .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.015) 1px, transparent 1px);
+  }
+  html[data-theme="light"] .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
+  }
+
+  /* Glow orbs – subdued in light mode */
+  .glow-orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(140px); pointer-events: none; z-index: 0;
+  }
+  html[data-theme="dark"]  .glow-orb { opacity: 0.45; mix-blend-mode: screen; }
+  html[data-theme="light"] .glow-orb { opacity: 0.08; mix-blend-mode: multiply; }
+
+  .glow-blue    { background: radial-gradient(circle,#3b82f6 0%,rgba(59,130,246,0) 70%);   width:600px;height:600px; }
+  .glow-indigo  { background: radial-gradient(circle,#6366f1 0%,rgba(99,102,241,0) 70%);   width:500px;height:500px; }
+  .glow-emerald { background: radial-gradient(circle,#10b981 0%,rgba(16,185,129,0) 70%);   width:450px;height:450px; }
+  .glow-purple  { background: radial-gradient(circle,#8b5cf6 0%,rgba(139,92,246,0) 70%);   width:500px;height:500px; }
+
+  /* Marquee / glass card */
+  @keyframes wave      { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+  @keyframes marquee   { 0%{transform:translate3d(0,0,0)} 100%{transform:translate3d(-50%,0,0)} }
+  @keyframes pulse-slow{ 0%,100%{opacity:.35;transform:scale(1)} 50%{opacity:.55;transform:scale(1.1)} }
+  @keyframes blink     { 50%{opacity:0} }
+
+  .animate-marquee  { display:flex; width:max-content; animation:marquee 35s linear infinite; }
+  .animate-pulse-slow { animation:pulse-slow 8s infinite ease-in-out; }
+  .cursor-blink     { animation:blink 1s step-end infinite; }
+
+  .glass-card {
+    background: var(--bg-overlay);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-base);
+    box-shadow: var(--shadow-card);
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+  }
+  .glass-card:hover { border-color: var(--border-muted); }
+
+  /* Scrollbar thin */
+  .scrollbar-thin::-webkit-scrollbar       { width:4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background:transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background:var(--scroll-thumb); border-radius:2px; }
+
+  /* Dark mode live bulletin text (stay bright) */
+  html[data-theme="dark"] .bulletin-text { color: #cbd5e1; }
+  html[data-theme="light"] .bulletin-text { color: #1e3a5f; }
+  html[data-theme="light"] .bulletin-label {
+    background: rgba(37,99,235,0.15) !important;
+    border-color: rgba(37,99,235,0.3) !important;
+    color: #1d4ed8 !important;
+  }
+  html[data-theme="light"] .bulletin-label .bulletin-dot {
+    background-color: #2563eb !important;
+  }
+
+  /* ============================================
+     LIGHT MODE – Blanket Tailwind overrides
+     Catches any slate/dark Tailwind classes still
+     used in JSX that we couldn't individually fix
+     ============================================ */
+  html[data-theme="light"] body,
+  html[data-theme="light"] #root,
+  html[data-theme="light"] #root > * {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+  }
+
+  /* All remaining dark bg classes → light surfaces */
+  html[data-theme="light"] [class*="bg-slate-8"],
+  html[data-theme="light"] [class*="bg-slate-9"],
+  html[data-theme="light"] [class*="bg-[#0"],
+  html[data-theme="light"] [class*="bg-[#1"] {
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+  }
+
+  /* Text colors that look washed out on light backgrounds */
+  html[data-theme="light"] [class*="text-slate-1"],
+  html[data-theme="light"] [class*="text-white"] {
+    color: var(--text-primary) !important;
+  }
+  html[data-theme="light"] [class*="text-slate-2"],
+  html[data-theme="light"] [class*="text-slate-3"] {
+    color: var(--text-secondary) !important;
+  }
+  html[data-theme="light"] [class*="text-slate-4"],
+  html[data-theme="light"] [class*="text-slate-5"],
+  html[data-theme="light"] [class*="text-slate-6"] {
+    color: var(--text-muted) !important;
+  }
+
+  /* Dark borders → light borders */
+  html[data-theme="light"] [class*="border-slate-8"],
+  html[data-theme="light"] [class*="border-slate-9"] {
+    border-color: var(--border-base) !important;
+  }
+
+  /* Inputs / selects / textareas */
+  html[data-theme="light"] input:not([type="range"]),
+  html[data-theme="light"] select,
+  html[data-theme="light"] textarea {
+    background-color: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-base) !important;
+  }
+  html[data-theme="light"] input::placeholder,
+  html[data-theme="light"] textarea::placeholder {
+    color: var(--text-muted) !important;
+  }
+  html[data-theme="light"] option {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+
+  /* KPI / data cards */
+  html[data-theme="light"] .glass-card,
+  html[data-theme="light"] .theme-card,
+  html[data-theme="light"] .theme-surface {
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;
+  }
+
+  /* Preserve accent colors (don't over-ride cyan/blue/emerald/amber/red) */
+  html[data-theme="light"] .text-cyan-400,
+  html[data-theme="light"] .text-cyan-450,
+  html[data-theme="light"] .text-cyan-400 { color: #0891b2 !important; }
+  html[data-theme="light"] .text-cyan-400  { color: #2563eb !important; }
+  html[data-theme="light"] .text-cyan-400,
+  html[data-theme="light"] .text-emerald-500 { color: #059669 !important; }
+  html[data-theme="light"] .text-amber-400,
+  html[data-theme="light"] .text-amber-500 { color: #d97706 !important; }
+  html[data-theme="light"] .text-red-400   { color: #dc2626 !important; }
+  html[data-theme="light"] .text-purple-400 { color: #7c3aed !important; }
+
+  /* Animations */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  .animate-fade-in-up { animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+  .animate-fade-in { animation: fade-in 0.8s ease-out forwards; opacity: 0; }
+  .animate-slide-in-right { animation: slide-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+  
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  
+  .hover-scale { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .hover-scale:hover { transform: translateY(-2px) scale(1.01); }
+  </style>
+
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            consoleBgLight: '#f1f5f9',
+            consoleBgDark: '#0b0f17',
+            consoleNavDark: '#0f172a',
+            gcpBlue: '#1a73e8',
+            awsOrange: '#ff9900',
+            borderLight: '#e2e8f0',
+            borderDark: '#1f2937',
+            cardLight: '#ffffff',
+            cardDark: '#111827'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body>
+  
+  <div id="root"></div>
+
+  <!-- React Code -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const INITIAL_REPORTS = [
+      { id: "REP-104", name: "Srinivas Gowda", phone: "+91 94480 12345", type: "Flood", location: "Silk Board Junction (Monsoon Waterlogging)", lat: 12.917, lng: 77.623, desc: "Monsoon drain overflow. Waterlogging up to 2 feet on Service Road, stalling cars.", status: "Pending", time: "10 mins ago", image: "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=300&q=80" },
+      { id: "REP-103", name: "Priya Nair", phone: "+91 98860 55443", type: "Tree Fall", location: "100 Feet Road, Indiranagar", lat: 12.964, lng: 77.640, desc: "A massive Gulmohar tree has fallen onto parked vehicles, blocking two lanes.", status: "Verified", time: "25 mins ago", image: "https://images.unsplash.com/photo-1594756297462-ec7a6c9d747a?auto=format&fit=crop&w=300&q=80" },
+      { id: "REP-102", name: "Karthik Subramanian", phone: "+91 70123 99887", type: "Water Leakage", location: "Whitefield Outer Ring Road", lat: 12.969, lng: 77.749, desc: "Major BWSSB pipeline fracture, discharging potable water onto the road.", status: "Assigned", time: "1 hour ago", image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=300&q=80" },
+      { id: "REP-101", name: "Dr. Sandeep Sen", phone: "+91 80234 56789", type: "Pollution", location: "Bellandur Lake (Chemical Foaming)", lat: 12.934, lng: 77.671, desc: "Severe chemical foaming observed along the north channels of the lake.", status: "Resolved", time: "3 hours ago", image: "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=300&q=80" },
+    ];
+
+    const EMERGENCY_RESOURCES = [
+      { id: "RES-01", name: "BBMP Disaster Cell Team A", type: "Rescue Team", status: "Active", location: "Silk Board Junction", lat: 12.919, lng: 77.620, contact: "Supervisor Srinivas" },
+      { id: "RES-02", name: "SDRF Water Rescue Squad", type: "Rescue Team", status: "Standby", location: "Bellandur Outpost", lat: 12.935, lng: 77.665, contact: "Officer Manjunath" },
+      { id: "RES-03", name: "HAL Emergency Ambulance", type: "Ambulance", status: "Active", location: "HAL Airport Road Hospital", lat: 12.956, lng: 77.652, contact: "Paramedic Vinod" },
+      { id: "RES-04", name: "Hebbal Relief Shelter 1", type: "Shelter", status: "Open (120/400)", location: "Hebbal Ground", lat: 13.035, lng: 77.597, contact: "Coordinator Murthy" },
+      { id: "RES-05", name: "BBMP Fire Station Central", type: "Fire Station", status: "Standby", location: "MG Road Station", lat: 12.975, lng: 77.608, contact: "Station Chief Kumar" },
+    ];
+
+    function App() {
+      // Auth states
+      const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [email, setEmail] = useState("");
+      const [password, setPassword] = useState("");
+      const [error, setError] = useState("");
+      const [isDemoConnecting, setIsDemoConnecting] = useState(false);
+      const [introTab, setIntroTab] = useState("login"); // "login" or "report"
+
+      // Public citizen reporting form states
+      const [publicName, setPublicName] = useState("");
+      const [publicPhone, setPublicPhone] = useState("");
+      const [publicType, setPublicType] = useState("Flood");
+      const [publicLocation, setPublicLocation] = useState("");
+      const [publicDesc, setPublicDesc] = useState("");
+      const [publicSuccess, setPublicSuccess] = useState("");
+
+      // Intro telemetry simulation logs
+      const [telemetryLogs, setTelemetryLogs] = useState([
+        { id: 1, text: "GCP Telemetry stream linked successfully.", time: "10:45:12" },
+        { id: 2, text: "Sensor Node S-101 (Silk Board PM2.5): 165 AQI (Normal variance).", time: "10:46:01" },
+        { id: 3, text: "GisMap layer loaded: 3 raster overlays cached.", time: "10:46:18" },
+        { id: 4, text: "Bellandur lake level telemetry verified at 12.4m.", time: "10:47:02" },
+      ]);
+
+      // Telemetry log updates (Intro page only)
+      useEffect(() => {
+        if (isLoggedIn) return;
+        const interval = setInterval(() => {
+          const msgs = [
+            "Sensor Node S-102 (Bellandur Lake) level stabilized at 12.4m",
+            "TG Halli reservoir level telemetry tick: 28.5%",
+            "AQI reading update: 168 (Peenya Industrial)",
+            "Weather API response: Temp 31.2°C, Humidity 68%",
+            "SMS/EWS broadcast system ready on channels 1-4",
+            "Leaflet map tiles successfully synchronized from CartoDB",
+            "GCP BigQuery cluster ingestion: 120 events/sec ingested"
+          ];
+          const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
+          const now = new Date();
+          const timeStr = now.toTimeString().split(' ')[0];
+          setTelemetryLogs(prev => [
+            { id: Date.now(), text: randomMsg, time: timeStr },
+            ...prev.slice(0, 3)
+          ]);
+        }, 3000);
+        return () => clearInterval(interval);
+      }, [isLoggedIn]);
+
+      // Sleek automatic typewriter demo login simulation
+      const handleDemoLogin = () => {
+        if (isDemoConnecting) return;
+        setIsDemoConnecting(true);
+        setError("");
+        
+        const targetEmail = "admin@ecoshield.gov.in";
+        const targetPassword = "admin";
+        
+        let currentEmail = "";
+        let emailIdx = 0;
+        
+        const typeEmailInterval = setInterval(() => {
+          if (emailIdx < targetEmail.length) {
+            currentEmail += targetEmail[emailIdx];
+            setEmail(currentEmail);
+            emailIdx++;
+          } else {
+            clearInterval(typeEmailInterval);
+            
+            // Short pause, then type password
+            setTimeout(() => {
+              let currentPassword = "";
+              let passIdx = 0;
+              const typePassInterval = setInterval(() => {
+                if (passIdx < targetPassword.length) {
+                  currentPassword += targetPassword[passIdx];
+                  setPassword(currentPassword);
+                  passIdx++;
+                } else {
+                  clearInterval(typePassInterval);
+                  
+                  // Authenticating spinner
+                  setTimeout(() => {
+                    setIsLoggedIn(true);
+                    setIsDemoConnecting(false);
+                  }, 600);
+                }
+              }, 60);
+            }, 200);
+          }
+        }, 30);
+      };
+
+      // App core states
+      const [activeTab, setActiveTab] = useState("dashboard");
+      const [reports, setReports] = useState(INITIAL_REPORTS);
+      const [resources, setResources] = useState(EMERGENCY_RESOURCES);
+      const [darkMode, setDarkMode] = useState(true);
+      const [notifications, setNotifications] = useState([
+        { id: 1, text: "Urban flood warning issued for Outer Ring Road (ORR) Bellandur stretch.", type: "danger", time: "Just now" },
+        { id: 2, text: "Air Quality Index (AQI) exceeded 240 in Peenya Industrial Area.", type: "warning", time: "1 hour ago" },
+        { id: 3, text: "Sensor Node S-403: Tippagondanahalli reservoir depletion warning (capacity < 30%).", type: "info", time: "2 hours ago" }
+      ]);
+      const [sensorAqi, setSensorAqi] = useState(165);
+      const [riverLevel, setRiverLevel] = useState(12.4);
+      const [reservoirCapacity, setReservoirCapacity] = useState(28.5);
+      const [riskIndex, setRiskIndex] = useState(58);
+      const [weather, setWeather] = useState({ temp: 31.2, hum: 68, rain: 24, wind: 18.5 });
+      const [chatOpen, setChatOpen] = useState(false);
+      const [chatMessages, setChatMessages] = useState([
+        { sender: 'ai', text: "Hello! I am EcoShield's AI Resilience Assistant. How can I help you coordinate district environmental updates today?", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
+      ]);
+      const [chatInput, setChatInput] = useState("");
+      const [isTyping, setIsTyping] = useState(false);
+
+      const [mapLayerFlood, setMapLayerFlood] = useState(true);
+      const [mapLayerLandslide, setMapLayerLandslide] = useState(true);
+      const [mapLayerDrought, setMapLayerDrought] = useState(false);
+      const [mapLayerInfrastructure, setMapLayerInfrastructure] = useState(true);
+
+      const [warningType, setWarningType] = useState("Water Scarcity");
+      const [warningDistrict, setWarningDistrict] = useState("Whitefield Zone");
+      const [warningSeverity, setWarningSeverity] = useState("Critical");
+      const [warningMessage, setWarningMessage] = useState("ALERT: Tippagondanahalli Reservoir reserves depleted. Water supply rationed. Please conserve water. BBMP.");
+
+      const [reportType, setReportType] = useState("Disaster Summary");
+      const [reportTimeframe, setReportTimeframe] = useState("24 Hours");
+
+      const [citName, setCitName] = useState("");
+      const [citPhone, setCitPhone] = useState("");
+      const [citType, setCitType] = useState("Flood");
+      const [citLocation, setCitLocation] = useState("");
+      const [citDesc, setCitDesc] = useState("");
+
+      const mapRef = useRef(null);
+
+      // Handle Theme Change – uses CSS custom property data-theme approach
+      useEffect(() => {
+        const root = document.documentElement;
+        if (darkMode) {
+          root.setAttribute('data-theme', 'dark');
+          root.classList.add('dark');
+        } else {
+          root.setAttribute('data-theme', 'light');
+          root.classList.remove('dark');
+        }
+      }, [darkMode]);
+
+      // Set initial theme immediately (before first paint)
+      useEffect(() => { 
+        document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light'); 
+        if (darkMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }, [darkMode]);
+
+      // === CATCH-ALL THEME OVERRIDE ===
+      // Walks every DOM element and overrides any remaining hardcoded dark colors
+      // This guarantees all elements change color even if we missed any JSX class updates
+      useEffect(() => {
+        const applyThemeOverrides = () => {
+          const isDark = darkMode;
+          
+          // Map of computed backgroundColor values → their light-mode replacement
+          const bgMap = {
+            'rgb(8, 13, 21)'   : isDark ? '' : '#ffffff',
+            'rgb(3, 7, 18)'    : isDark ? '' : '#ffffff',
+            'rgb(7, 11, 19)'   : isDark ? '' : '#ffffff',
+            'rgb(11, 15, 23)'  : isDark ? '' : '#ffffff',
+            'rgb(15, 23, 42)'  : isDark ? '' : '#f8fafc',
+            'rgb(17, 24, 39)'  : isDark ? '' : '#ffffff',
+            'rgb(9, 13, 22)'   : isDark ? '' : '#f8fafc',
+          };
+
+          const allEls = document.querySelectorAll('*');
+          allEls.forEach(el => {
+            const cs = window.getComputedStyle(el);
+            const bg = cs.backgroundColor;
+            if (bgMap[bg] !== undefined) {
+              if (isDark) {
+                // Remove inline override – let CSS classes take over
+                if (el._themeOverrideApplied) {
+                  el.style.backgroundColor = '';
+                  el.style.color = '';
+                  el._themeOverrideApplied = false;
+                }
+              } else {
+                el.style.backgroundColor = bgMap[bg];
+                el.style.color = 'var(--text-primary)';
+                el._themeOverrideApplied = true;
+              }
+            }
+          });
+        };
+
+        // Small delay to let React re-render first
+        const timer = setTimeout(applyThemeOverrides, 50);
+        return () => clearTimeout(timer);
+      }, [darkMode]);
+
+
+
+      // Simulated websocket ticks
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setSensorAqi(prev => Math.min(300, Math.max(50, prev + Math.floor(Math.random() * 5) - 2)));
+          setRiverLevel(prev => +(prev + (Math.random() * 0.04 - 0.02)).toFixed(2));
+          setReservoirCapacity(prev => Math.max(10, Math.min(100, prev + (Math.random() * 0.1 - 0.08))));
+          setRiskIndex(prev => Math.min(100, Math.max(0, prev + Math.floor(Math.random() * 2) - 1)));
+        }, 5000);
+        return () => clearInterval(interval);
+      }, []);
+
+      // Handle Login
+      const handleLoginSubmit = (e) => {
+        e.preventDefault();
+        if (isDemoConnecting) return;
+        if (email === "admin@ecoshield.gov.in" && password === "admin") {
+          setIsLoggedIn(true);
+          setError("");
+        } else {
+          setError("Invalid username or password. Please use the credentials provided in the helper box.");
+        }
+      };
+
+      // Handle Public Citizen Emergency Report Submission
+      const handlePublicReportSubmit = (e) => {
+        e.preventDefault();
+        if (!publicName || !publicLocation || !publicDesc) return;
+
+        const reportId = `REP-${Math.floor(105 + Math.random() * 1000)}`;
+        const newReport = {
+          id: reportId,
+          name: publicName,
+          phone: publicPhone || "+91 99999 88888",
+          type: publicType,
+          location: publicLocation,
+          lat: 12.9716 + (Math.random() - 0.5) * 0.08,
+          lng: 77.5946 + (Math.random() - 0.5) * 0.08,
+          desc: publicDesc,
+          status: "Pending",
+          time: "Just now",
+          image: "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=300&q=80"
+        };
+
+        setReports([newReport, ...reports]);
+        setNotifications([
+          { id: Date.now(), text: `PUBLIC URGENT: ${publicType} submitted at ${publicLocation}.`, type: "danger", time: "Just now" },
+          ...notifications
+        ]);
+
+        setPublicSuccess(`Emergency report submitted! Reference ID: ${reportId}. Log in as admin to verify it in the main dashboard queue.`);
+        
+        // Reset form
+        setPublicName("");
+        setPublicPhone("");
+        setPublicLocation("");
+        setPublicDesc("");
+        
+        // Clear message after 10 seconds
+        setTimeout(() => setPublicSuccess(""), 10000);
+      };
+
+      const handleSendMessage = (text) => {
+        if (isTyping) return;
+        const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const userMsg = { sender: 'user', text, time: timeStr };
+        
+        setChatMessages(prev => [...prev, userMsg]);
+        setChatInput("");
+        setIsTyping(true);
+        
+        setTimeout(() => {
+          const aiText = getAiResponse(text);
+          const aiMsg = { sender: 'ai', text: aiText, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+          setChatMessages(prev => [...prev, aiMsg]);
+          setIsTyping(false);
+        }, 800);
+      };
+
+      const getAiResponse = (userText) => {
+        const text = userText.toLowerCase();
+        
+        if (text.includes('aqi') || text.includes('air quality') || text.includes('peenya') || text.includes('pollution')) {
+          const status = sensorAqi > 200 ? 'UNHEALTHY' : sensorAqi > 100 ? 'MODERATE' : 'GOOD';
+          const color = sensorAqi > 200 ? 'text-red-400' : sensorAqi > 100 ? 'text-amber-400' : 'text-cyan-400';
+          return `<div class="space-y-2">
+            <div class="font-bold border-b border-white/10 pb-1 mb-2 text-cyan-400"><i class="fa-solid fa-wind mr-1"></i> AQI Analysis Report</div>
+            <div>The Peenya Industrial AQI sensor is reading <span class="font-bold ${color}">${sensorAqi} PM2.5</span>.</div>
+            <div class="bg-slate-900/50 p-2 rounded text-[10px]">Status: <span class="font-bold ${color}">${status}</span><br/>Recommendation: ${sensorAqi > 200 ? 'Issue public health warning and halt outdoor industrial activities.' : 'Air quality is within acceptable limits.'}</div>
+          </div>`;
+        }
+        if (text.includes('flood') || text.includes('waterlog') || text.includes('lake') || text.includes('bellandur')) {
+          const status = riverLevel > 13.0 ? 'CRITICAL HIGH' : 'STABLE';
+          const color = riverLevel > 13.0 ? 'text-red-400' : 'text-cyan-400';
+          return `<div class="space-y-2">
+            <div class="font-bold border-b border-white/10 pb-1 mb-2 text-cyan-400"><i class="fa-solid fa-water mr-1"></i> Flood Risk Assessment</div>
+            <div>Bellandur Lake telemetry indicates a depth of <span class="font-bold ${color}">${riverLevel}m</span>.</div>
+            <div class="bg-slate-900/50 p-2 rounded text-[10px]">Current Status: <span class="font-bold ${color}">${status}</span><br/>AI Prediction: ${riverLevel > 13.0 ? 'Flooding imminent on Outer Ring Road. Deploy NDRF.' : 'Water levels expected to remain stable for next 24hrs.'}</div>
+          </div>`;
+        }
+        if (text.includes('reservoir') || text.includes('water shortage') || text.includes('capacity') || text.includes('tg halli')) {
+          const status = reservoirCapacity < 30 ? 'CRITICAL LOW' : 'ADEQUATE';
+          const color = reservoirCapacity < 30 ? 'text-red-400' : 'text-cyan-400';
+          return `<div class="space-y-2">
+            <div class="font-bold border-b border-white/10 pb-1 mb-2 text-cyan-400"><i class="fa-solid fa-database mr-1"></i> Reservoir Telemetry</div>
+            <div>TG Halli Reservoir is at <span class="font-bold ${color}">${reservoirCapacity.toFixed(1)}%</span> capacity.</div>
+            <div class="bg-slate-900/50 p-2 rounded text-[10px]">Status: <span class="font-bold ${color}">${status}</span><br/>Drought Risk: ${reservoirCapacity < 30 ? 'High. Implement Stage 2 water rationing.' : 'Low. Sufficient reserves for current season.'}</div>
+          </div>`;
+        }
+        if (text.includes('report') || text.includes('incidents') || text.includes('active') || text.includes('public') || text.includes('count')) {
+          const pending = reports.filter(r => r.status === 'Pending').length;
+          return `<div class="space-y-2">
+            <div class="font-bold border-b border-white/10 pb-1 mb-2 text-cyan-400"><i class="fa-solid fa-users mr-1"></i> Citizen Report Summary</div>
+            <div>Total incidents logged: <span class="font-bold text-cyan-400">${reports.length}</span></div>
+            <div class="bg-slate-900/50 p-2 rounded text-[10px] flex items-start gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-0.5"></i>
+              <span><span class="font-bold text-amber-400">${pending}</span> pending reports require BBMP verification.</span>
+            </div>
+          </div>`;
+        }
+        if (text.includes('help') || text.includes('features') || text.includes('website')) {
+          return `<div class="space-y-2">
+            <div class="font-bold text-cyan-400">EcoShield AI System Architecture:</div>
+            <ul class="list-disc pl-4 space-y-1 text-[10px] text-slate-300">
+              <li>Real-time telemetry (AQI, Lake Depth, Weather)</li>
+              <li>Interactive GIS threat mapping</li>
+              <li>AI predictive river-level models</li>
+              <li>Citizen incident portal integration</li>
+            </ul>
+          </div>`;
+        }
+        
+        return "I am the EcoShield AI Assistant. I can provide detailed structural analysis on <b>Peenya AQI</b>, <b>Bellandur Lake levels</b>, <b>TG Halli reservoir capacity</b>, or <b>active citizen reports</b>.";
+      };
+
+      // Leaflet Map center Bangalore
+      const renderMap = (containerId) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (mapRef.current) {
+          try { mapRef.current.remove(); } catch(e) {}
+          mapRef.current = null;
+        }
+        
+        // Ensure container is clean
+        container._leaflet_id = null;
+
+        const map = L.map(containerId).setView([12.9716, 77.5946], 12);
+        mapRef.current = map;
+
+        const tileUrl = darkMode
+          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+          : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+        L.tileLayer(tileUrl, {
+          attribution: '&copy; CARTO'
+        }).addTo(map);
+
+        if (mapLayerFlood) {
+          const floodCoords = [
+            [12.942, 77.660], [12.945, 77.675], [12.930, 77.685],
+            [12.925, 77.670], [12.932, 77.658]
+          ];
+          L.polygon(floodCoords, {
+            color: '#2563eb',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.25,
+            weight: 1.5
+          }).addTo(map).bindPopup("<b>Bellandur Lake Flooding Boundary</b>");
+        }
+
+        if (mapLayerLandslide) {
+          L.circle([12.964, 77.640], { color: '#d97706', fillColor: '#f59e0b', fillOpacity: 0.2, radius: 400 }).addTo(map).bindPopup("<b>Indiranagar Tree Fall zone</b>");
+          L.circle([12.917, 77.623], { color: '#dc2626', fillColor: '#ef4444', fillOpacity: 0.2, radius: 500 }).addTo(map).bindPopup("<b>Silk Board Waterlogging Hotspot</b>");
+        }
+
+        if (mapLayerDrought) {
+          L.circle([13.03, 77.59], { color: '#db2777', fillColor: '#ec4899', fillOpacity: 0.1, radius: 2500 }).addTo(map).bindPopup("<b>Water Scarcity Zone: North Bangalore</b>");
+        }
+
+        if (mapLayerInfrastructure) {
+          resources.forEach(res => {
+            const color = res.type === 'Rescue Team' ? '#7c3aed' : res.type === 'Ambulance' ? '#dc2626' : '#16a34a';
+            const iconHtml = `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid white;"></div>`;
+            const customIcon = L.divIcon({ html: iconHtml, className: 'corp-icon', iconSize: [12, 12] });
+            L.marker([res.lat, res.lng], { icon: customIcon }).addTo(map).bindPopup(`<b>${res.name}</b><br>${res.location}`);
+          });
+        }
+
+        reports.forEach(rep => {
+          const color = rep.status === 'Pending' ? '#dc2626' : rep.status === 'Verified' ? '#d97706' : '#16a34a';
+          const iconHtml = `<div style="background-color: ${color}; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid white;"></div>`;
+          const customIcon = L.divIcon({ html: iconHtml, className: 'corp-rep-icon', iconSize: [10, 10] });
+          L.marker([rep.lat, rep.lng], { icon: customIcon }).addTo(map).bindPopup(`<b>Incident: ${rep.type}</b><br>${rep.location}`);
+        });
+      };
+
+      useEffect(() => {
+        if (!isLoggedIn) return;
+        
+        const timer = setTimeout(() => {
+          if (activeTab === 'dashboard') {
+            renderMap('dash-map');
+          } else if (activeTab === 'map') {
+            renderMap('gis-map');
+          }
+        }, 50);
+
+        return () => {
+          clearTimeout(timer);
+          if (mapRef.current) {
+            try { mapRef.current.remove(); } catch(e) {}
+            mapRef.current = null;
+          }
+        };
+      }, [activeTab, mapLayerFlood, mapLayerLandslide, mapLayerDrought, mapLayerInfrastructure, reports, resources, darkMode, isLoggedIn]);
+
+      // Chart JS Initialization
+      useEffect(() => {
+        if (!isLoggedIn) return;
+        let chart1, chart2, chart3, chart4;
+        const textColor = darkMode ? '#94a3b8' : '#475569';
+        const gridColor = darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+        if (activeTab === 'dashboard') {
+          const ctx1 = document.getElementById('riskTrendChart');
+          if (ctx1) {
+            chart1 = new Chart(ctx1, {
+              type: 'line',
+              data: {
+                labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+                datasets: [{
+                  label: 'Disaster Risk Index',
+                  data: [50, 52, 54, 53, 56, 55, 57, riskIndex],
+                  borderColor: '#1a73e8',
+                  backgroundColor: 'rgba(26, 115, 232, 0.08)',
+                  fill: true,
+                  tension: 0.2,
+                  borderWidth: 2
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { grid: { color: gridColor }, ticks: { color: textColor } },
+                  x: { grid: { color: gridColor }, ticks: { color: textColor } }
+                }
+              }
+            });
+          }
+
+          const ctx2 = document.getElementById('incidentBreakdownChart');
+          if (ctx2) {
+            chart2 = new Chart(ctx2, {
+              type: 'doughnut',
+              data: {
+                labels: ['Waterlogging', 'Tree Fall', 'Water Scarcity', 'Lake Pollution', 'Others'],
+                datasets: [{
+                  data: [3, 2, 4, 2, 1],
+                  backgroundColor: ['#2563eb', '#d97706', '#db2777', '#16a34a', '#7c3aed'],
+                  borderWidth: 1
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { color: textColor } } }
+              }
+            });
+          }
+        }
+
+        if (activeTab === 'predictions') {
+          const ctx3 = document.getElementById('riverLevelForecastChart');
+          if (ctx3) {
+            chart3 = new Chart(ctx3, {
+              type: 'line',
+              data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu (Today)', 'Fri (Fc)', 'Sat (Fc)', 'Sun (Fc)'],
+                datasets: [
+                  { label: 'Observed Lake Level (m)', data: [11.8, 12.0, 12.2, riverLevel, null, null, null], borderColor: '#2563eb', backgroundColor: '#2563eb', borderWidth: 2 },
+                  { label: 'Predictive Mean (m)', data: [null, null, null, riverLevel, 12.8, 13.2, 13.5], borderColor: '#db2777', borderDash: [4, 4], backgroundColor: 'transparent', borderWidth: 2 }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: textColor } } },
+                scales: {
+                  y: { grid: { color: gridColor }, ticks: { color: textColor } },
+                  x: { grid: { color: gridColor }, ticks: { color: textColor } }
+                }
+              }
+            });
+          }
+        }
+
+        if (activeTab === 'environmental') {
+          const ctx4 = document.getElementById('aqiTrendsChart');
+          if (ctx4) {
+            chart4 = new Chart(ctx4, {
+              type: 'bar',
+              data: {
+                labels: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
+                datasets: [{
+                  label: 'Silk Board PM2.5 Index',
+                  data: [130, 142, 150, 155, 160, 172, 168, sensorAqi],
+                  backgroundColor: '#7c3aed',
+                  barThickness: 16
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { grid: { color: gridColor }, ticks: { color: textColor } },
+                  x: { grid: { color: gridColor }, ticks: { color: textColor } }
+                }
+              }
+            });
+          }
+        }
+
+        return () => {
+          if (chart1) chart1.destroy();
+          if (chart2) chart2.destroy();
+          if (chart3) chart3.destroy();
+          if (chart4) chart4.destroy();
+        };
+      }, [activeTab, riverLevel, sensorAqi, riskIndex, darkMode, isLoggedIn]);
+
+      // Form Handlers
+      const handleCitizenSubmit = (e) => {
+        e.preventDefault();
+        if (!citName || !citLocation || !citDesc) return;
+        const newReport = {
+          id: `REP-${Math.floor(105 + Math.random() * 1000)}`,
+          name: citName,
+          phone: citPhone || "+91 99999 88888",
+          type: citType,
+          location: citLocation,
+          lat: 12.97 + (Math.random() - 0.5) * 0.08,
+          lng: 77.59 + (Math.random() - 0.5) * 0.08,
+          desc: citDesc,
+          status: "Pending",
+          time: "Just now",
+          image: "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=300&q=80"
+        };
+        setReports([newReport, ...reports]);
+        setNotifications([{ id: Date.now(), text: `NEW REPORT: ${citType} reported at ${citLocation}.`, type: "danger", time: "Just now" }, ...notifications]);
+        setCitName(""); setCitPhone(""); setCitLocation(""); setCitDesc("");
+        alert("Report submitted successfully.");
+      };
+
+      const handleVerifyReport = (id) => {
+        setReports(reports.map(rep => rep.id === id ? { ...rep, status: "Verified" } : rep));
+      };
+
+      const handleRejectReport = (id) => {
+        setReports(reports.filter(rep => rep.id !== id));
+      };
+
+      const handleDispatchResource = (resId, repId) => {
+        setResources(resources.map(res => res.id === resId ? { ...res, status: "Active" } : res));
+        setReports(reports.map(rep => rep.id === repId ? { ...rep, status: "Assigned" } : rep));
+        alert("Asset dispatched.");
+      };
+
+      const handleSendAlert = (e) => {
+        e.preventDefault();
+        setNotifications([{ id: Date.now(), text: `ALERT: ${warningSeverity} - ${warningMessage}`, type: "danger", time: "Just now" }, ...notifications]);
+        alert("Emergency warning broadcasted.");
+      };
+
+      const renderLiveFeedItems = () => {
+        return (
+          <React.Fragment>
+            {notifications.map((note) => (
+              <span key={`note-${note.id}`} className="mx-8 inline-flex items-center gap-2">
+                <span className="text-red-500 font-bold">âš ï¸</span>
+                <span className="text-slate-200 font-semibold">{note.text}</span>
+                <span className="text-slate-500 text-[9px]">({note.time})</span>
+              </span>
+            ))}
+            {reports.map((rep) => (
+              <span key={`rep-${rep.id}`} className="mx-8 inline-flex items-center gap-2">
+                <span className="text-cyan-400 font-bold">📡</span>
+                <span className="text-slate-300">Report {rep.id} [{rep.status.toUpperCase()}]: {rep.type} at {rep.location.split(' (')[0]}</span>
+              </span>
+            ))}
+            <span className="mx-8 inline-flex items-center gap-2">
+              <span className="text-cyan-400 font-bold">📊</span>
+              <span className="text-slate-300">Peenya AQI: <span className="text-cyan-400 font-bold">{sensorAqi}</span></span>
+            </span>
+            <span className="mx-8 inline-flex items-center gap-2">
+              <span className="text-cyan-400 font-bold">💧</span>
+              <span className="text-slate-300">Bellandur Lake: <span className="text-cyan-400 font-bold">{riverLevel}m</span></span>
+            </span>
+            <span className="mx-8 inline-flex items-center gap-2">
+              <span className="text-amber-500 font-bold">âš ï¸</span>
+              <span className="text-slate-300">TG Halli Capacity: <span className="text-amber-400 font-bold">{reservoirCapacity.toFixed(1)}%</span></span>
+            </span>
+          </React.Fragment>
+        );
+      };
+
+      const renderLiveFeedBanner = () => {
+        return (
+          <div className="theme-bulletin w-full border-b border-red-500/20 text-slate-400 text-xs py-2 px-6 overflow-hidden relative z-30 flex items-center select-none font-mono">
+            <span className="bulletin-label bg-red-500/10 border border-red-500/25 text-red-400 text-[9px] font-bold px-2 py-0.5 rounded mr-3 shrink-0 flex items-center gap-1.5 uppercase tracking-wider">
+              <span className="bulletin-dot h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse"></span>
+              Live Bulletin
+            </span>
+            <div className="flex-1 overflow-hidden relative w-full text-[10px] h-4">
+              <div className="absolute whitespace-nowrap animate-marquee hover:[animation-play-state:paused] cursor-pointer flex">
+                <div className="flex items-center shrink-0 bulletin-text">
+                  {renderLiveFeedItems()}
+                </div>
+                <div className="flex items-center shrink-0 bulletin-text">
+                  {renderLiveFeedItems()}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderAiChatAssistant = () => {
+        return (
+          <div className="fixed bottom-6 right-6 z-[9999] font-mono text-xs select-none">
+            {/* Chat Bubble Button */}
+            {!chatOpen && (
+              <button 
+                onClick={() => setChatOpen(true)}
+                className="h-20 w-20 rounded-full bg-blue-600 hover:bg-cyan-500 text-white shadow-2xl flex items-center justify-center cursor-pointer transition-all border border-blue-500/20 active:scale-95 animate-pulse-slow"
+              >
+                <i className="fa-solid fa-robot text-3xl"></i>
+              </button>
+            )}
+
+            {/* Chat Window */}
+            {chatOpen && (
+              <div className="theme-chat-window rounded-xl shadow-2xl w-[22rem] sm:w-[26rem] overflow-hidden flex flex-col h-[500px] border animate-fade-in-up">
+                {/* Chat Header */}
+                <div className="theme-chat-header border-b px-4 py-3 flex items-center justify-between bg-slate-900/50">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold theme-text-primary tracking-wide uppercase text-[10px]">EcoShield AI</span>
+                      <span className="text-[8px] text-cyan-400 font-mono tracking-widest">CONNECTED TO DATABASE</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setChatMessages([])} className="text-[9px] font-mono theme-text-muted hover:text-red-400 transition-colors uppercase tracking-wider">
+                      Clear
+                    </button>
+                    <button onClick={() => setChatOpen(false)} className="theme-text-secondary hover:text-white cursor-pointer">
+                      <i className="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Messages Log */}
+                <div className="theme-surface flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin flex flex-col">
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
+                      <div className={`max-w-[85%] p-3 rounded-xl leading-relaxed text-xs shadow-sm ${
+                        msg.sender === 'user' 
+                          ? 'bg-blue-600 text-white rounded-br-none text-right' 
+                          : 'theme-chat-ai-bubble border rounded-bl-none text-left'
+                      }`}>
+                        {msg.sender === 'ai' ? (
+                          <div dangerouslySetInnerHTML={{ __html: msg.text }}></div>
+                        ) : (
+                          <div>{msg.text}</div>
+                        )}
+                        <div className={`text-[8px] mt-1.5 ${msg.sender === 'user' ? 'text-blue-200 text-right' : 'theme-text-muted text-right'}`}>{msg.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {isTyping && (
+                    <div className="flex justify-start animate-fade-in-up">
+                      <div className="theme-chat-ai-bubble border p-3 rounded-xl rounded-bl-none flex items-center gap-2 shadow-sm">
+                        <span className="text-[9px] text-cyan-500 font-bold tracking-widest uppercase mr-1 animate-pulse">Analyzing</span>
+                        <span className="flex gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-bounce"></span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0.15s' }}></span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Prompts Starter Chips */}
+                {chatMessages.length === 1 && (
+                  <div className="theme-chat-input-bar border-t px-4 py-2 flex flex-wrap gap-1.5">
+                    <button 
+                      onClick={() => handleSendMessage("Check Peenya AQI")}
+                      className="theme-chip hover-scale px-2 py-1 rounded text-[9px] cursor-pointer transition-colors"
+                    >
+                      📊 Peenya AQI
+                    </button>
+                    <button 
+                      onClick={() => handleSendMessage("Check Bellandur flood level")}
+                      className="theme-chip hover-scale px-2 py-1 rounded text-[9px] cursor-pointer transition-colors"
+                    >
+                      💧 Bellandur Lake
+                    </button>
+                    <button 
+                      onClick={() => handleSendMessage("Check Reservoir capacity")}
+                      className="theme-chip hover-scale px-2 py-1 rounded text-[9px] cursor-pointer transition-colors"
+                    >
+                      ðŸœï¸ Reservoir Capacity
+                    </button>
+                    <button 
+                      onClick={() => handleSendMessage("Active Incident Count")}
+                      className="theme-chip hover-scale px-2 py-1 rounded text-[9px] cursor-pointer transition-colors"
+                    >
+                      📡 Incident Count
+                    </button>
+                  </div>
+                )}
+
+                {/* Chat Input */}
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!chatInput.trim()) return;
+                    handleSendMessage(chatInput);
+                  }}
+                  className="theme-chat-input-bar border-t p-2 flex gap-2"
+                >
+                  <input 
+                    type="text" 
+                    value={chatInput} 
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Type your resilience inquiry..." 
+                    className="theme-chat-input flex-1 rounded px-2.5 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+                  />
+                  <button 
+                    type="submit" 
+                    className="bg-blue-600 hover:bg-cyan-500 text-white px-3 py-1 rounded cursor-pointer transition-colors"
+                  >
+                    <i className="fa-solid fa-paper-plane"></i>
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // --- INTRO / SPLASH PAGE RENDERING ---
+      if (!isLoggedIn) {
+        return (
+          <div className="min-h-screen flex flex-col justify-between relative overflow-hidden selection:bg-blue-600 selection:text-white grid-bg">
+            {renderLiveFeedBanner()}
+            {/* Ambient Background Glows */}
+            <div className="glow-orb glow-indigo top-[-10%] left-[-10%] animate-pulse-slow"></div>
+            <div className="glow-orb glow-emerald bottom-[-10%] right-[-10%] animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+            <div className="glow-orb glow-blue top-[30%] right-[20%] animate-pulse-slow" style={{ animationDelay: '4s' }}></div>
+
+            {/* Landing Topbar */}
+            <header className="theme-header border-b px-8 py-4 flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
+                  <i className="fa-solid fa-shield-halved text-base"></i>
+                </div>
+                <div>
+                  <div className="font-bold text-lg tracking-tight font-display text-white flex items-center gap-2">
+                    EcoShield AI
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-blue-500/20 text-[9px] text-cyan-400 font-mono">
+                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse"></span> Systems Active
+                    </span>
+                  </div>
+                  <div className="text-[9px] uppercase font-mono theme-text-muted tracking-wider">Climate & Environmental Intelligence</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-5 text-xs font-mono text-slate-400">
+                <div className="hidden md:flex items-center gap-6">
+                  <a href="#docs" className="hover:text-white transition-colors">API Docs</a>
+                  <a href="#changelog" className="hover:text-white transition-colors">v2.4.1-bengaluru</a>
+                  <span className="h-4 w-px bg-slate-800"></span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest mr-2">BBMP Resilience Node</span>
+                </div>
+                <button 
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="hover:text-white flex items-center gap-1.5 px-2.5 py-1 rounded theme-chip border theme-border cursor-pointer"
+                >
+                  {darkMode ? <i className="fa-solid fa-sun text-amber-400"></i> : <i className="fa-solid fa-moon text-indigo-400"></i>}
+                  <span className="font-mono text-[10px]">{darkMode ? 'LIGHT' : 'DARK'}</span>
+                </button>
+              </div>
+            </header>
+
+            {/* Split Landing Hero */}
+            <main className="flex-1 max-w-7xl mx-auto w-full px-8 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+              
+              {/* Features, Terminal & Description */}
+              <div className="lg:col-span-7 space-y-8">
+                <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/25 text-xs text-cyan-400 font-mono">
+                  <i className="fa-solid fa-earth-americas text-blue-450"></i>
+                  Aligned with UN SDGs (Goal 6, 11, 13)
+                </div>
+                
+                <div className="space-y-4">
+                  <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] font-display text-white">
+                    The Environmental <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-350 to-emerald-450">
+                      Operating System
+                    </span> <br />
+                    for District Resilience
+                  </h1>
+                  <p className="text-slate-400 text-sm md:text-base max-w-xl leading-relaxed">
+                    EcoShield AI coordinates real-time telemetry inputs, GIS predictive layers, and multi-channel public warning networks into a single dashboard interface for district administrations.
+                  </p>
+                </div>
+
+                {/* Live Resilience Telemetry Deck */}
+                <div className="glass-card animate-fade-in-up border rounded-lg overflow-hidden shadow-2xl max-w-xl">
+                  {/* Header */}
+                  <div className="theme-nav border-b px-4 py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                      <span className="font-mono text-[10px] text-slate-300 font-bold uppercase tracking-wider">Live System Telemetry Grid</span>
+                    </div>
+                    <span className="text-[9px] text-cyan-400 bg-cyan-500/5 px-2 py-0.5 rounded border border-cyan-500/10 font-bold font-mono">LIVE CONNECTED</span>
+                  </div>
+                  {/* Body */}
+                  <div className="p-4 space-y-4">
+                    {/* Grid of Real Sensor Telemetries */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* AQI Node */}
+                      <div className="theme-chip hover-scale border theme-border p-2.5 rounded-lg text-center font-mono">
+                        <div className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Peenya AQI</div>
+                        <div className={`text-lg font-extrabold mt-1 ${sensorAqi > 200 ? 'text-red-400' : sensorAqi > 100 ? 'text-amber-400' : 'text-cyan-400'}`}>
+                          {sensorAqi}
+                        </div>
+                        <div className="text-[8px] text-slate-400 mt-0.5">
+                          {sensorAqi > 200 ? 'Unhealthy' : sensorAqi > 100 ? 'Moderate' : 'Good'}
+                        </div>
+                      </div>
+                      {/* Water Level Node */}
+                      <div className="theme-chip hover-scale border theme-border p-2.5 rounded-lg text-center font-mono">
+                        <div className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Bellandur Lake</div>
+                        <div className="text-lg font-extrabold text-cyan-400 mt-1">
+                          {riverLevel}m
+                        </div>
+                        <div className="text-[8px] text-slate-400 mt-0.5">
+                          {riverLevel > 13.0 ? 'High Level' : 'Normal'}
+                        </div>
+                      </div>
+                      {/* Reservoir Node */}
+                      <div className="theme-chip hover-scale border theme-border p-2.5 rounded-lg text-center font-mono">
+                        <div className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">TG Halli Res.</div>
+                        <div className="text-lg font-extrabold text-amber-500 mt-1">
+                          {reservoirCapacity.toFixed(1)}%
+                        </div>
+                        <div className="text-[8px] text-slate-400 mt-0.5">
+                          {reservoirCapacity < 30.0 ? 'Critical Low' : 'Adequate'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Incident Feed */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[9px] text-slate-500 uppercase font-bold tracking-wider">Recent Citizen Reports</span>
+                        <span className="text-[9px] text-slate-400 font-mono">({reports.length} Verified & Pending)</span>
+                      </div>
+                      <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                        {reports.slice(0, 3).map((rep) => (
+                          <div key={rep.id} className="theme-chip hover-scale border theme-border p-2 rounded-lg flex items-center justify-between text-xs hover:theme-border transition-colors">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">
+                                {rep.type === 'Flood' ? '💧' : rep.type === 'Tree Fall' ? '🌳' : rep.type === 'Water Scarcity' ? '🚰' : '⚠️'}
+                              </span>
+                              <div className="text-left">
+                                <div className="font-semibold text-slate-200 text-[11px] leading-tight">{rep.type}</div>
+                                <div className="text-[9px] text-slate-500 mt-0.5 leading-none">{rep.location.split(' (')[0]}</div>
+                              </div>
+                            </div>
+                            <span className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold ${
+                              rep.status === 'Pending' ? 'bg-red-500/10 border border-red-500/25 text-red-400' :
+                              rep.status === 'Verified' ? 'bg-amber-500/10 border border-amber-500/25 text-amber-400' :
+                              rep.status === 'Assigned' ? 'bg-blue-500/10 border border-blue-500/25 text-cyan-400' :
+                              'bg-cyan-500/10 border border-blue-500/25 text-cyan-400'
+                            }`}>
+                              {rep.status.toUpperCase()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Features List */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                  <div className="p-4 theme-chip rounded-lg border theme-border hover:theme-nav transition-all group flex gap-3.5">
+                    <div className="h-8 w-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:bg-cyan-500/20 transition-all shrink-0">
+                      <i className="fa-solid fa-map-location-dot text-cyan-400 text-sm"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-xs text-slate-200">GIS Threat Overlays</h4>
+                      <p className="text-[10px] theme-text-muted mt-1 leading-relaxed">Interactive flood boundaries and responder coordinate tracking.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 theme-chip rounded-lg border theme-border hover:theme-nav transition-all group flex gap-3.5">
+                    <div className="h-8 w-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/20 transition-all shrink-0">
+                      <i className="fa-solid fa-brain text-purple-400 text-sm"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-xs text-slate-200">AI Predictive Forecasts</h4>
+                      <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Lake depth modeling and predictive water shortage limits.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Login/Report Deck */}
+              <div className="lg:col-span-5 flex justify-center w-full relative">
+                {/* Glow behind login */}
+                <div className="absolute inset-0 bg-blue-500/5 rounded-2xl filter blur-3xl pointer-events-none"></div>
+                
+                <div className="glass-card animate-fade-in-up p-6 rounded-xl w-full max-w-md space-y-5 relative z-10 transition-all border border-white/[0.06]">
+                  {/* Selector Tabs */}
+                  <div className="flex border-b theme-border mb-4 theme-chip p-1 rounded-lg">
+                    <button 
+                      onClick={() => setIntroTab("login")}
+                      className={`flex-1 py-2 text-center text-[11px] font-bold rounded-md transition-all ${
+                        introTab === 'login' 
+                          ? 'bg-blue-600 text-white shadow-md' 
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <i className="fa-solid fa-lock mr-1.5"></i> Admin Sign-In
+                    </button>
+                    <button 
+                      onClick={() => setIntroTab("report")}
+                      className={`flex-1 py-2 text-center text-[11px] font-bold rounded-md transition-all ${
+                        introTab === 'report' 
+                          ? 'bg-blue-600 text-white shadow-md' 
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <i className="fa-solid fa-circle-exclamation mr-1.5"></i> File Public Report
+                    </button>
+                  </div>
+
+                  {introTab === "login" ? (
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-bold text-lg text-white tracking-tight">Sign in to console</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Authorized BBMP personnel access gate</p>
+                      </div>
+
+                      <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
+                        <div className="space-y-1.5">
+                          <label className="text-slate-400 block font-semibold">User Email Address</label>
+                          <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center theme-text-muted pointer-events-none">
+                              <i className="fa-regular fa-envelope"></i>
+                            </span>
+                            <input 
+                              type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                              placeholder="admin@ecoshield.gov.in" 
+                              className="theme-input border pl-10 pr-4 py-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition-all" 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-slate-400 block font-semibold">Security Access Key</label>
+                          <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center theme-text-muted pointer-events-none">
+                              <i className="fa-solid fa-key"></i>
+                            </span>
+                            <input 
+                              type="password" required value={password} onChange={e => setPassword(e.target.value)}
+                              placeholder="••••••••" 
+                              className="theme-input border pl-10 pr-4 py-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition-all" 
+                            />
+                          </div>
+                        </div>
+
+                        {error && (
+                          <div className="text-[11px] bg-red-950/20 border border-red-500/25 p-3 rounded-lg text-red-400 font-medium leading-relaxed flex gap-2 items-start animate-shake">
+                            <i className="fa-solid fa-circle-exclamation text-xs mt-0.5 shrink-0"></i>
+                            <span>{error}</span>
+                          </div>
+                        )}
+
+                        <button 
+                          type="submit" 
+                          disabled={isDemoConnecting}
+                          className={`relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white w-full py-3 rounded-lg font-bold transition-all shadow-lg shadow-blue-600/10 active:scale-[0.98] ${
+                            isDemoConnecting ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {isDemoConnecting ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <i className="fa-solid fa-circle-notch animate-spin text-sm"></i>
+                              Connecting Security Gate...
+                            </span>
+                          ) : (
+                            "Authenticate System"
+                          )}
+                        </button>
+                      </form>
+
+                      <div className="relative flex py-1 items-center">
+                        <div className="flex-grow border-t theme-border"></div>
+                        <span className="flex-shrink mx-4 text-[10px] font-mono text-slate-655 uppercase tracking-widest">Demo Portal</span>
+                        <div className="flex-grow border-t theme-border"></div>
+                      </div>
+
+                      {/* Auto login action button */}
+                      <button 
+                        onClick={handleDemoLogin}
+                        disabled={isDemoConnecting}
+                        className="w-full theme-chip hover:bg-blue-600/10 theme-text-secondary hover:text-white border theme-border py-2.5 rounded-lg text-[11px] font-bold tracking-wide transition-all flex items-center justify-center gap-2 group cursor-pointer"
+                      >
+                        <i className="fa-solid fa-wand-magic-sparkles text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                        <span>Quick Demo Sign-In (Autofill)</span>
+                      </button>
+
+                      {/* Credentials block */}
+                      <div className="bg-blue-955/20 border border-blue-900/20 p-3 rounded-lg text-[10px] text-slate-500 leading-relaxed font-mono relative overflow-hidden">
+                        <div className="font-bold text-cyan-400/90 mb-1 uppercase tracking-wider text-[9px] flex items-center gap-1.5">
+                          <i className="fa-solid fa-shield-halved text-[10px]"></i>
+                          Access Credentials:
+                        </div>
+                        <div>User: <span className="theme-text-secondary select-all">admin@ecoshield.gov.in</span></div>
+                        <div>Key: <span className="theme-text-secondary select-all">admin</span></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5">
+                      <div>
+                        <h3 className="font-bold text-lg text-white tracking-tight">Public Reporting Intake</h3>
+                        <p className="text-xs theme-text-muted mt-0.5">Submit disaster coordinates directly to the grid</p>
+                      </div>
+
+                      <form onSubmit={handlePublicReportSubmit} className="space-y-3 text-xs">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-slate-400 font-semibold">Your Name</label>
+                            <input 
+                              type="text" required value={publicName} onChange={e => setPublicName(e.target.value)}
+                              placeholder="e.g. Ramesh Patel" 
+                              className="theme-input border p-2.5 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-slate-400 font-semibold">Phone Number</label>
+                            <input 
+                              type="text" value={publicPhone} onChange={e => setPublicPhone(e.target.value)}
+                              placeholder="+91 9XXXX XXXXX" 
+                              className="theme-input border p-2.5 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-slate-400 font-semibold">Incident Type</label>
+                            <select 
+                              value={publicType} onChange={e => setPublicType(e.target.value)}
+                              className="theme-input border p-2.5 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                            >
+                              <option value="Flood">Flood / Waterlogging</option>
+                              <option value="Tree Fall">Tree Fall / Blockage</option>
+                              <option value="Water Scarcity">Water Depletion</option>
+                              <option value="Pollution">Chemical / Lake Foam</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-slate-400 font-semibold">Incident Location</label>
+                            <input 
+                              type="text" required value={publicLocation} onChange={e => setPublicLocation(e.target.value)}
+                              placeholder="e.g. Silk Board Service Rd" 
+                              className="theme-input border p-2.5 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-slate-400 font-semibold">Description of Situation</label>
+                          <textarea 
+                            required rows="3" value={publicDesc} onChange={e => setPublicDesc(e.target.value)}
+                            placeholder="Describe waterlogging heights, traffic flow, visual damages..." 
+                            className="theme-input border p-2.5 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500/25 resize-none"
+                          />
+                        </div>
+
+                        {publicSuccess && (
+                          <div className="text-[11px] bg-emerald-950/20 border border-blue-500/25 p-3 rounded-lg text-cyan-400 font-medium leading-relaxed flex gap-2 items-start">
+                            <i className="fa-solid fa-circle-check text-xs mt-0.5 shrink-0"></i>
+                            <span>{publicSuccess}</span>
+                          </div>
+                        )}
+
+                        <button 
+                          type="submit" 
+                          className="bg-blue-600 hover:bg-cyan-500 text-white w-full py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-600/10 active:scale-[0.98]"
+                        >
+                          Submit Emergency Report
+                        </button>
+                      </form>
+
+                      <div className="theme-chip hover-scale border theme-border p-2.5 rounded-lg text-[9px] theme-text-muted leading-relaxed font-mono">
+                        <span className="text-red-500 font-bold">WARNING:</span> All submissions are logged, geolocated, and verified by BBMP Disaster Cells. False reporting is subject to prosecution.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </main>
+
+            <footer className="theme-header border-t py-4 text-center text-[10px] theme-text-muted font-mono relative z-10">
+              EcoShield Intelligence Console | Government of Karnataka Environment Portal
+            </footer>
+            {renderAiChatAssistant()}
+          </div>
+        );
+      }
+
+      // --- MAIN COMMAND CENTER CONSOLE SHELL ---
+      return (
+        <div className="min-h-screen flex flex-col">
+          {renderLiveFeedBanner()}
+          
+          {/* --- TOP HEADER --- */}
+          <header className="theme-header border-b px-6 py-3 flex items-center justify-between z-10">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded bg-amber-500/10 flex items-center justify-center border border-amber-500/25">
+                <i className="fa-solid fa-server text-amber-500 text-sm"></i>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="font-bold text-md tracking-tight font-display theme-text-primary">EcoShield Console</span>
+                <span className="text-[9px] theme-chip px-1.5 py-0.5 rounded font-mono">PROD-ENV-BANGALORE</span>
+              </div>
+            </div>
+
+            {/* Mock Search */}
+            <div className="hidden md:flex items-center theme-chip border rounded px-3 py-1.5 w-96 max-w-lg">
+              <i className="fa-solid fa-magnifying-glass theme-text-muted text-xs mr-2"></i>
+              <input type="text" placeholder="Search resources, sensors, alerts..." className="bg-transparent text-xs w-full focus:outline-none theme-text-primary" />
+            </div>
+
+            {/* Toggles */}
+            <div className="flex items-center gap-5 text-xs theme-text-secondary">
+              <button 
+                onClick={() => setDarkMode(!darkMode)}
+                className="hover:text-white flex items-center gap-1.5 px-2.5 py-1 rounded theme-chip cursor-pointer transition-colors"
+              >
+                {darkMode ? <i className="fa-solid fa-sun text-amber-400"></i> : <i className="fa-solid fa-moon text-indigo-400"></i>}
+                <span className="font-mono text-[10px]">{darkMode ? 'LIGHT' : 'DARK'}</span>
+              </button>
+
+              <div className="flex items-center gap-2 group cursor-pointer relative pl-2 border-l theme-border">
+                <div className="h-7 w-7 rounded-full bg-blue-600 border border-blue-400/30 flex items-center justify-center font-bold text-white text-[10px] shadow-lg shadow-blue-500/20">
+                  AD
+                </div>
+                <div className="hidden lg:flex flex-col">
+                  <span className="font-bold theme-text-primary text-[10px] tracking-wide leading-tight">System Admin</span>
+                  <span className="font-mono theme-text-muted text-[8px] leading-tight">ecoshield.gov.in</span>
+                </div>
+                <i className="fa-solid fa-chevron-down text-[8px] ml-1 opacity-50 group-hover:opacity-100 transition-opacity"></i>
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 flex flex-col md:flex-row">
+            
+            {/* --- SIDEBAR --- */}
+            <nav className="md:w-60 theme-nav border-r p-3.5 flex flex-col gap-1 flex-shrink-0 justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] theme-text-muted font-mono tracking-wider px-2.5 mb-1.5 uppercase font-bold">Services & Operations</span>
+                
+                <button 
+                  onClick={() => setActiveTab("dashboard")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'dashboard' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-table-columns w-4"></i> Console Dashboard
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab("map")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'map' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-map w-4"></i> GIS Map Analytics
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab("predictions")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'predictions' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-brain w-4"></i> AI Predictions Engine
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab("environmental")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'environmental' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-chart-bar w-4"></i> Environment Sensors
+                </button>
+
+                <span className="text-[9px] theme-text-muted font-mono tracking-wider px-2.5 mt-4 mb-1.5 uppercase font-bold">Admin Actions</span>
+
+                <button 
+                  onClick={() => setActiveTab("citizen")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'citizen' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-users w-4"></i> Citizens Reports
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab("response")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'response' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-truck-ramp-box w-4"></i> Disaster Dispatcher
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab("warnings")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'warnings' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-triangle-exclamation w-4"></i> EWS Broadcast System
+                </button>
+
+                <span className="text-[9px] theme-text-muted font-mono tracking-wider px-2.5 mt-4 mb-1.5 uppercase font-bold">Metrics & Audits</span>
+
+                <button 
+                  onClick={() => setActiveTab("sustainability")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'sustainability' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-leaf w-4"></i> Sustainability SDGs
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab("admin")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'admin' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-gears w-4"></i> System Diagnostics
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab("reporting")}
+                  className={`animate-fade-in-up flex items-center gap-3 px-3 py-2 rounded text-xs transition-all cursor-pointer w-full ${activeTab === 'reporting' ? 'theme-nav-active text-cyan-400 font-semibold' : 'theme-text-secondary hover:text-white'}`}>
+                  <i className="fa-solid fa-file-pdf w-4"></i> Export PDF Sheets
+                </button>
+              </div>
+
+              {/* Log out at bottom */}
+              <button 
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setEmail("");
+                  setPassword("");
+                }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded text-xs transition-all text-red-400 hover:bg-red-950/20 hover:text-red-300 font-semibold mt-6 border border-transparent hover:border-red-900/35"
+              >
+                <i className="fa-solid fa-right-from-bracket w-4"></i> Sign Out Console
+              </button>
+            </nav>
+
+            {/* --- MAIN CONTENT --- */}
+            <main className="flex-1 p-5 overflow-y-auto max-w-[1600px] mx-auto w-full theme-text-primary">
+              
+              {/* ======================================= */}
+              {/* TAB 1: COMMAND CENTER DASHBOARD */}
+              {/* ======================================= */}
+              {activeTab === "dashboard" && (
+                <div className="space-y-5">
+                  
+                  {/* KPI Panels */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    
+                    {/* RISK INDEX */}
+                    <div className="theme-card relative overflow-hidden animate-fade-in-up hover-scale p-4 rounded-xl border shadow-sm flex items-center justify-between">
+                      {riskIndex > 50 && <div className="absolute inset-0 border border-red-500/30 rounded-xl animate-pulse pointer-events-none"></div>}
+                      <div className="relative z-10">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">Disaster Risk Level</span>
+                        <div className="text-3xl font-extrabold animate-fade-in text-cyan-400 mt-1">{riskIndex}<span className="text-lg opacity-70">%</span></div>
+                        <span className="text-[10px] text-red-450 font-semibold mt-1 block">
+                          <i className="fa-solid fa-triangle-exclamation"></i> Waterlogging limits exceeded
+                        </span>
+                      </div>
+                      <div className="relative w-14 h-14 z-10 mr-2">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
+                          <path className="text-slate-800" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                          <path className="text-cyan-400 animate-pulse" strokeDasharray={`${riskIndex}, 100`} strokeWidth="3" stroke="currentColor" fill="none" strokeLinecap="round" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <i className="fa-solid fa-cloud-showers-water absolute inset-0 flex items-center justify-center text-cyan-400/50 text-xs"></i>
+                      </div>
+                    </div>
+
+                    {/* AQI CARD */}
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">Air Quality</span>
+                        <div className="text-2xl font-extrabold animate-fade-in text-amber-500 mt-1">{sensorAqi} <span className="text-xs font-normal theme-text-muted">AQI</span></div>
+                        <span className="text-[10px] text-amber-500 font-semibold mt-1 block">Moderate (Peenya Grid)</span>
+                      </div>
+                      <div className="p-2.5 theme-chip rounded text-slate-400">
+                        <i className="fa-solid fa-smog text-lg"></i>
+                      </div>
+                    </div>
+
+                    {/* RESERVOIR LEVEL */}
+                    <div className="theme-card relative overflow-hidden animate-fade-in-up hover-scale p-4 rounded-xl border shadow-sm flex items-center justify-between">
+                      {reservoirCapacity < 30 && <div className="absolute inset-0 border border-red-500/50 rounded-xl animate-pulse pointer-events-none shadow-[inset_0_0_20px_rgba(239,68,68,0.15)]"></div>}
+                      <div className="relative z-10">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">TG Halli Reservoir</span>
+                        <div className="text-3xl font-extrabold animate-fade-in text-cyan-400 mt-1">{reservoirCapacity.toFixed(1)}<span className="text-lg opacity-70">%</span></div>
+                        <span className={`text-[10px] font-semibold mt-1 block ${reservoirCapacity < 30 ? 'text-red-500' : 'text-emerald-400'}`}>
+                          {reservoirCapacity < 30 ? <><i className="fa-solid fa-triangle-exclamation"></i> Scarcity Alert!</> : 'Stable Supply'}
+                        </span>
+                      </div>
+                      <div className="relative w-14 h-14 z-10 mr-2">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
+                          <path className="text-slate-800" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                          <path className="text-blue-500" strokeDasharray={`${reservoirCapacity}, 100`} strokeWidth="3" stroke="currentColor" fill="none" strokeLinecap="round" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <i className="fa-solid fa-water absolute inset-0 flex items-center justify-center text-blue-500/50 text-xs"></i>
+                      </div>
+                    </div>
+
+                    {/* ACTIVE REPORTS */}
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded-xl border theme-border shadow-sm flex items-center justify-between relative overflow-hidden">
+                      {reports.filter(r => r.status === 'Pending').length > 0 && <div className="absolute inset-0 border border-amber-500/30 rounded-xl animate-pulse pointer-events-none"></div>}
+                      <div className="relative z-10">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">Active Incidents</span>
+                        <div className="text-3xl font-extrabold animate-fade-in text-red-500 mt-1">{reports.filter(r => r.status !== 'Resolved').length}</div>
+                        <span className="text-[10px] text-amber-500 font-semibold mt-1 block">
+                          {reports.filter(r => r.status === 'Pending').length} Pending Validation
+                        </span>
+                      </div>
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-full text-red-400 relative z-10 mr-1">
+                        <i className="fa-solid fa-bell text-xl animate-pulse-slow"></i>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Middle Map & warnings */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    
+                    {/* Interactive Map widget */}
+                    <div className="lg:col-span-2 theme-card p-4 rounded border theme-border shadow-sm flex flex-col h-[380px]">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-bold uppercase text-slate-500 font-mono flex items-center gap-1.5">
+                          <i className="fa-solid fa-map-location-dot text-blue-500"></i> GIS Incident Mapping Overlay
+                        </h3>
+                        <span className="text-[10px] text-slate-500 font-mono">Region: Bangalore Metro</span>
+                      </div>
+                      <div id="dash-map" className="flex-1 rounded theme-surface border theme-border overflow-hidden"></div>
+                    </div>
+
+                    {/* Feed log */}
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm flex flex-col h-[380px]">
+                      <h3 className="text-xs font-bold uppercase text-red-500 font-mono mb-2 flex items-center gap-1.5">
+                        <i className="fa-solid fa-bullhorn text-red-500"></i> Emergency Broadcast Alerts
+                      </h3>
+                      <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                        {notifications.map(note => (
+                          <div key={note.id} className={`p-2.5 rounded text-xs border ${
+                            note.type === 'danger' ? 'bg-red-955/20 border-red-900/40 text-red-200' :
+                            note.type === 'warning' ? 'bg-amber-955/20 border-amber-900/40 text-amber-200' :
+                            'theme-chip/60 theme-border theme-text-secondary'
+                          }`}>
+                            <div className="flex items-center justify-between mb-0.5 text-[9px] font-mono text-slate-500">
+                              <span className="font-bold">{note.type.toUpperCase()}</span>
+                              <span>{note.time}</span>
+                            </div>
+                            <p>{note.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Charts & Tickers */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm flex flex-col h-[300px]">
+                      <h3 className="text-xs font-bold uppercase text-slate-500 font-mono mb-2">Disaster Risk Trend (24h)</h3>
+                      <div className="flex-1 relative">
+                        <canvas id="riskTrendChart"></canvas>
+                      </div>
+                    </div>
+
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm flex flex-col h-[300px]">
+                      <h3 className="text-xs font-bold uppercase text-slate-500 font-mono mb-2">Incident Distribution</h3>
+                      <div className="flex-1 relative">
+                        <canvas id="incidentBreakdownChart"></canvas>
+                      </div>
+                    </div>
+
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm flex flex-col h-[300px]">
+                      <h3 className="text-xs font-bold uppercase theme-text-muted font-mono mb-2 flex items-center justify-between">
+                        <span>Incident Log queue</span>
+                        <span className="text-[9px] theme-chip px-1.5 py-0.2 rounded font-mono border theme-border">Live</span>
+                      </h3>
+                      <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+                        {reports.map(rep => (
+                          <div key={rep.id} className="p-2 rounded theme-surface border theme-border flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold font-mono theme-text-secondary">{rep.id}</span>
+                                <span className="text-[9px] px-1 theme-chip text-slate-400 font-mono rounded border theme-border">{rep.type}</span>
+                              </div>
+                              <p className="text-[10px] theme-text-muted font-mono mt-0.5">{rep.location}</p>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] ${
+                              rep.status === 'Pending' ? 'bg-red-950 text-red-400' :
+                              rep.status === 'Verified' ? 'bg-amber-955 text-amber-400' :
+                              'bg-green-950 text-emerald-450'
+                            }`}>{rep.status}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 2: GIS INTELLIGENCE MAP */}
+              {/* ======================================= */}
+              {activeTab === "map" && (
+                <div className="space-y-4">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                        <i className="fa-solid fa-earth-asia text-blue-500"></i> GIS Map Control Panel
+                      </h2>
+                      <p className="text-slate-500 text-xs">Analyze Bangalore geographical hazards and coordinates overlays.</p>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
+                      <button 
+                        onClick={() => setMapLayerFlood(!mapLayerFlood)}
+                        className={`px-2.5 py-1 rounded border theme-border transition-all ${mapLayerFlood ? 'bg-blue-600 text-white border-blue-600' : 'theme-card text-slate-500'}`}>
+                        Flood Zones
+                      </button>
+                      <button 
+                        onClick={() => setMapLayerLandslide(!mapLayerLandslide)}
+                        className={`px-2.5 py-1 rounded border theme-border transition-all ${mapLayerLandslide ? 'bg-amber-650 text-white' : 'theme-card theme-text-muted'}`}>
+                        Vulnerable Spots
+                      </button>
+                      <button 
+                        onClick={() => setMapLayerDrought(!mapLayerDrought)}
+                        className={`px-2.5 py-1 rounded border theme-border transition-all ${mapLayerDrought ? 'bg-pink-650 text-white' : 'theme-card theme-text-muted'}`}>
+                        Scarcity Index
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+                    {/* Controls */}
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm space-y-4 lg:col-span-1 text-xs">
+                      <h3 className="text-xs font-bold uppercase theme-text-muted font-mono border-b theme-border pb-2">Map settings</h3>
+                      
+                      <div className="space-y-1.5">
+                        <label className="theme-text-muted block">Console Search coordinates</label>
+                        <input type="text" placeholder="12.97, 77.59" className="theme-surface border theme-border px-2.5 py-1.5 rounded w-full focus:outline-none" />
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-3 theme-card p-2 rounded border theme-border shadow-sm h-[500px]">
+                      <div id="gis-map" className="h-full rounded theme-surface"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 3: AI PREDICTION ENGINE */}
+              {/* ======================================= */}
+              {activeTab === "predictions" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-brain text-blue-500"></i> AI Predictions Engine
+                    </h2>
+                    <p className="text-slate-500 text-xs">Bangalore water table forecasts and urban flooding projections.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    
+                    <div className="theme-card animate-fade-in-up hover-scale p-5 rounded border theme-border shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="font-bold theme-text-muted font-mono uppercase font-semibold">Flood Probability</span>
+                          <span className="bg-red-950/60 text-red-400 px-2 py-0.5 rounded font-mono text-[9px] border border-red-900/40">Moderate</span>
+                        </div>
+                        <div className="text-3xl font-extrabold text-blue-505 mt-2">58%</div>
+                        <p className="text-xs theme-text-secondary font-mono leading-relaxed mt-2">Projects localized waterlogging around Silk Board and outer ring roads.</p>
+                      </div>
+                      <div className="border-t theme-border pt-3 mt-4 text-[10px] text-slate-500 font-mono">
+                        Model confidence limit: 89%
+                      </div>
+                    </div>
+
+                    <div className="theme-card animate-fade-in-up hover-scale p-5 rounded border theme-border shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="font-bold theme-text-muted font-mono uppercase font-semibold">Urban Heat Index</span>
+                          <span className="bg-amber-955 text-amber-400 px-2 py-0.5 rounded font-mono text-[9px]">Moderate</span>
+                        </div>
+                        <div className="text-3xl font-extrabold text-amber-500 mt-2">34.8°C</div>
+                        <p className="text-xs theme-text-secondary font-mono leading-relaxed mt-2">Urban microclimate sensors project temperature stable around 34-36°C.</p>
+                      </div>
+                      <div className="border-t theme-border pt-3 mt-4 text-[10px] text-slate-500 font-mono">
+                        Model confidence limit: 91%
+                      </div>
+                    </div>
+
+                    <div className="theme-card animate-fade-in-up hover-scale p-5 rounded border theme-border shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="font-bold theme-text-muted font-mono uppercase font-semibold">TG Halli Scarcity</span>
+                          <span className="bg-red-950/60 text-red-400 px-2 py-0.5 rounded font-mono text-[9px] border border-red-900/40">Critical</span>
+                        </div>
+                        <div className="text-3xl font-extrabold text-red-500 mt-2">12 Days</div>
+                        <p className="text-xs theme-text-secondary font-mono leading-relaxed mt-2">Active depletion trends suggest critical water levels in Tippagondanahalli reservoir.</p>
+                      </div>
+                      <div className="border-t theme-border pt-3 mt-4 text-[10px] text-slate-500 font-mono">
+                        Model confidence limit: 95%
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <div className="lg:col-span-2 theme-card p-4 rounded border theme-border shadow-sm h-[320px]">
+                      <h3 className="text-xs font-bold uppercase text-slate-500 font-mono mb-2">AI Bellandur Waterbody Level Forecasting</h3>
+                      <div className="h-[260px] relative">
+                        <canvas id="riverLevelForecastChart"></canvas>
+                      </div>
+                    </div>
+
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm flex flex-col justify-between h-[320px] text-xs">
+                      <div>
+                        <h3 className="text-xs font-bold uppercase theme-text-muted font-mono mb-3">Resource Demand Projections</h3>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex justify-between text-[11px] mb-1 font-mono"><span>Water Tankers</span> <span>30 Trucks (Rec)</span></div>
+                            <div className="w-full theme-chip h-1.5 rounded-full"><div className="bg-blue-600 h-1.5 rounded-full" style={{ width: '85%' }}></div></div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-[11px] mb-1 font-mono"><span>Monsoon De-waterers</span> <span>14 Units (Rec)</span></div>
+                            <div className="w-full theme-chip h-1.5 rounded-full"><div className="bg-amber-600 h-1.5 rounded-full" style={{ width: '60%' }}></div></div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-[11px] mb-1 font-mono"><span>Emergency Ambulances</span> <span>8 Units (Rec)</span></div>
+                            <div className="w-full theme-chip h-1.5 rounded-full"><div className="bg-red-650 h-1.5 rounded-full" style={{ width: '40%' }}></div></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="theme-surface border theme-border p-2.5 rounded text-[10px] theme-text-muted font-mono">
+                        Recommendations update dynamically based on sensor inputs.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 4: ENVIRONMENTAL MONITORING */}
+              {/* ======================================= */}
+              {activeTab === "environmental" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-chart-bar text-blue-500"></i> Environmental Track Sensors
+                    </h2>
+                    <p className="theme-text-muted text-xs font-mono">Real-time parameters tracked across regional telemetry sensors.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+                    
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm space-y-3">
+                      <h3 className="font-bold text-amber-500 uppercase font-mono text-xs">Air Quality Sensors</h3>
+                      <div className="grid grid-cols-2 gap-3 font-mono">
+                        <div className="theme-surface p-2 border theme-border rounded">
+                          <span className="text-[9px] theme-text-muted block">PM2.5 (Silk Board)</span>
+                          <span className="font-bold">{sensorAqi} µg/m³</span>
+                        </div>
+                        <div className="theme-surface p-2 border theme-border rounded">
+                          <span className="text-[9px] theme-text-muted block">PM10</span>
+                          <span className="font-bold">{+(sensorAqi * 1.3).toFixed(0)} µg/m³</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm space-y-3">
+                      <h3 className="font-bold text-blue-550 uppercase font-mono text-xs">Bellandur Hydro-Quality</h3>
+                      <div className="grid grid-cols-2 gap-3 font-mono">
+                        <div className="theme-surface p-2 border theme-border rounded">
+                          <span className="text-[9px] theme-text-muted block">pH Value</span>
+                          <span className="font-bold">8.1</span>
+                        </div>
+                        <div className="theme-surface p-2 border theme-border rounded">
+                          <span className="text-[9px] theme-text-muted block">Lake Height</span>
+                          <span className="font-bold text-blue-500">{riverLevel}m</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border shadow-sm space-y-3">
+                      <h3 className="font-bold text-emerald-500 uppercase font-mono text-xs">Meteorological</h3>
+                      <div className="grid grid-cols-2 gap-3 font-mono">
+                        <div className="theme-surface p-2 border theme-border rounded">
+                          <span className="text-[9px] theme-text-muted block">Temp</span>
+                          <span className="font-bold theme-text-primary">{weather.temp}°C</span>
+                        </div>
+                        <div className="theme-surface p-2 border theme-border rounded">
+                          <span className="text-[9px] theme-text-muted block">Rain</span>
+                          <span className="font-bold theme-text-primary">{weather.rain} mm</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border shadow-sm h-[320px]">
+                    <h3 className="text-xs font-bold uppercase theme-text-muted font-mono mb-2">Silk Board PM2.5 trends</h3>
+                    <div className="h-[260px] relative">
+                      <canvas id="aqiTrendsChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 5: CITIZEN REPORTING PORTAL */}
+              {/* ======================================= */}
+              {activeTab === "citizen" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-users text-blue-500"></i> Citizens Incident Portal
+                    </h2>
+                    <p className="text-slate-500 text-xs font-mono">Submit Bangalore municipal hazards directly to the BBMP Control Authority.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+                    
+                    {/* Submit Form */}
+                    <div className="theme-card animate-fade-in-up hover-scale p-5 rounded border shadow-sm space-y-4 lg:col-span-1 h-fit">
+                      <h3 className="text-xs font-bold uppercase theme-text-muted font-mono theme-border-subtle border-b pb-2">Submit Alert Form</h3>
+                      <form onSubmit={handleCitizenSubmit} className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="theme-text-muted">Your Full Name *</label>
+                          <input type="text" required value={citName} onChange={e => setCitName(e.target.value)} className="theme-input border p-2 rounded w-full focus:outline-none focus:border-blue-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="theme-text-muted">Detailed Location *</label>
+                          <input type="text" required value={citLocation} onChange={e => setCitLocation(e.target.value)} className="theme-input border p-2 rounded w-full focus:outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="theme-text-muted">Detailed Description *</label>
+                          <textarea required value={citDesc} onChange={e => setCitDesc(e.target.value)} rows="3" className="theme-input border p-2 rounded w-full focus:outline-none"></textarea>
+                        </div>
+                        <button type="submit" className="bg-blue-600 hover:bg-blue-550 text-white w-full py-2 rounded font-bold transition">
+                          Submit Incident Report
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Verification Queue */}
+                    <div className="lg:col-span-2 theme-card p-5 rounded border shadow-sm space-y-4">
+                      <div className="flex items-center justify-between theme-border-subtle border-b pb-2">
+                        <h3 className="text-xs font-bold uppercase theme-text-muted font-mono">Verification Control queue</h3>
+                        <span className="text-[10px] theme-chip border px-2 py-0.5 rounded font-mono">
+                          {reports.filter(r => r.status === 'Pending').length} Pending Validation
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+                        {reports.map(rep => (
+                          <div key={rep.id} className="p-3.5 rounded theme-surface border flex flex-col md:flex-row justify-between gap-4">
+                            <div className="flex gap-3">
+                              <img src={rep.image} alt={rep.type} className="w-16 h-16 object-cover rounded border theme-border flex-shrink-0" />
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold theme-text-primary">{rep.id}</span>
+                                  <span className="text-[9px] px-1.5 py-0.2 theme-chip border theme-text-secondary rounded font-mono">{rep.type}</span>
+                                  <span className="theme-text-muted text-[9px] font-mono">{rep.time}</span>
+                                </div>
+                                <p className="font-semibold theme-text-secondary">{rep.location}</p>
+                                <p className="text-[11px] theme-text-secondary leading-normal">{rep.desc}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col justify-between items-end gap-1.5 flex-shrink-0">
+                              <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] ${
+                                rep.status === 'Pending' ? 'bg-red-955 text-red-400' :
+                                rep.status === 'Verified' ? 'bg-amber-955 text-amber-400' :
+                                'bg-green-950 text-emerald-450'
+                              }`}>{rep.status}</span>
+                              
+                              {rep.status === 'Pending' && (
+                                <div className="flex gap-1">
+                                  <button onClick={() => handleVerifyReport(rep.id)} className="bg-blue-600 hover:bg-emerald-555 text-white px-2.5 py-1 rounded font-bold transition cursor-pointer">Approve</button>
+                                  <button onClick={() => handleRejectReport(rep.id)} className="theme-chip hover-scale hover:bg-red-950/20 theme-text-secondary px-2.5 py-1 rounded font-bold transition cursor-pointer">Reject</button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 6: EMERGENCY RESPONSE */}
+              {/* ======================================= */}
+              {activeTab === "response" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-truck-ramp-box text-blue-500"></i> Emergency Dispatcher Console
+                    </h2>
+                    <p className="theme-text-muted text-xs font-mono">Verify incidents and dispatch standby medical, firefighting, or BBMP squads.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+                    
+                    <div className="theme-card animate-fade-in-up hover-scale p-5 rounded border theme-border shadow-sm space-y-4 lg:col-span-1 h-fit">
+                      <h3 className="text-xs font-bold uppercase text-red-500 font-mono border-b theme-border pb-2">Pending Dispatch</h3>
+                      
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                        {reports.filter(r => r.status === 'Verified').length === 0 ? (
+                          <p className="text-slate-500 text-center py-6 font-mono">No verified reports awaiting allocation.</p>
+                        ) : (
+                          reports.filter(r => r.status === 'Verified').map(rep => (
+                            <div key={rep.id} className="p-3 rounded theme-surface border theme-border space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-cyan-405 font-mono">{rep.id}</span>
+                                <span className="bg-amber-955 text-amber-400 px-1.5 py-0.2 rounded text-[9px] font-mono">{rep.type}</span>
+                              </div>
+                              <p className="font-semibold theme-text-secondary">{rep.location}</p>
+                              
+                              <div className="pt-2 border-t theme-border flex flex-col gap-1">
+                                <span className="text-[10px] theme-text-muted">Assign Responder Squad:</span>
+                                <div className="flex gap-1">
+                                  <select id={`res-sel-${rep.id}`} className="theme-surface border theme-border p-1.5 rounded w-full focus:outline-none text-slate-200">
+                                    {resources.filter(r => r.status === 'Standby').map(r => (
+                                      <option key={r.id} value={r.id}>{r.name}</option>
+                                    ))}
+                                  </select>
+                                  <button onClick={() => {
+                                    const select = document.getElementById(`res-sel-${rep.id}`);
+                                    if (select) handleDispatchResource(select.value, rep.id);
+                                  }} className="bg-blue-600 hover:bg-blue-550 text-white px-2.5 rounded font-bold transition">Dispatch</button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-2 theme-card p-5 rounded border theme-border shadow-sm space-y-4">
+                      <h3 className="text-xs font-bold uppercase text-slate-500 font-mono border-b theme-border pb-2">Active Emergency Resources</h3>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-slate-300">
+                          <thead className="theme-chip hover-scale border-b theme-border uppercase font-mono text-[10px]">
+                            <tr>
+                              <th className="p-3">Resource ID</th>
+                              <th className="p-3">Name</th>
+                              <th className="p-3">Type</th>
+                              <th className="p-3">Contact</th>
+                              <th className="p-3">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-850">
+                            {resources.map(res => (
+                              <tr key={res.id} className="hover:theme-chip/40">
+                                <td className="p-3 font-mono font-bold text-cyan-405">{res.id}</td>
+                                <td className="p-3">{res.name}</td>
+                                <td className="p-3">{res.type}</td>
+                                <td className="p-3 text-slate-400 font-mono">{res.contact}</td>
+                                <td className="p-3">
+                                  <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] ${
+                                    res.status === 'Standby' ? 'bg-green-950 text-emerald-450 border border-green-900/40' : 'bg-amber-955 text-amber-450'
+                                  }`}>{res.status}</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 7: EARLY WARNING SYSTEM */}
+              {/* ======================================= */}
+              {activeTab === "warnings" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-triangle-exclamation text-blue-500"></i> Early Warning System (EWS)
+                    </h2>
+                    <p className="text-slate-500 text-xs">Configure parameters and dispatch multi-channel citizen broadcasts.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+                    
+                    {/* EWS Config */}
+                    <div className="theme-card animate-fade-in-up hover-scale p-5 rounded border theme-border shadow-sm space-y-4 lg:col-span-1 h-fit">
+                      <h3 className="text-xs font-bold uppercase theme-text-muted font-mono border-b theme-border pb-2">Configure Broadcast</h3>
+                      <form onSubmit={handleSendAlert} className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="text-slate-500">Warning Category</label>
+                          <select value={warningType} onChange={e => {
+                            setWarningType(e.target.value);
+                            if (e.target.value === "Water Scarcity") {
+                              setWarningMessage("ALERT: Tippagondanahalli Reservoir reserves depleted. Water supply rationed. Please conserve water. BBMP.");
+                            } else {
+                              setWarningMessage("ALERT: Heavy rainfall warning. Silk Board underpass waterlogged. Plan alternative transit corridors. BBMP Control.");
+                            }
+                          }} className="theme-surface border theme-border p-2 rounded w-full text-slate-200 focus:outline-none">
+                            <option>Water Scarcity</option>
+                            <option>Monsoon Flooding</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="theme-text-muted">Target Zone</label>
+                          <select value={warningDistrict} onChange={e => setWarningDistrict(e.target.value)} className="theme-surface border theme-border p-2 rounded w-full text-slate-200 focus:outline-none">
+                            <option>Whitefield Zone</option>
+                            <option>Electronic City</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="theme-text-muted">Payload Message</label>
+                          <textarea value={warningMessage} onChange={e => setWarningMessage(e.target.value)} rows="3" className="theme-surface border theme-border p-2 rounded w-full text-slate-200 focus:outline-none"></textarea>
+                        </div>
+                        <button type="submit" className="bg-blue-600 hover:bg-blue-600 text-white w-full py-2 rounded font-bold transition">Send Broadcast</button>
+                      </form>
+                    </div>
+
+                    {/* Previews */}
+                    <div className="lg:col-span-2 space-y-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        
+                        <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm flex flex-col justify-between">
+                          <span className="text-[10px] text-slate-500 font-mono uppercase mb-2 block"><i className="fa-solid fa-comment-sms"></i> SMS Preview</span>
+                          <div className="theme-surface border theme-border p-3 rounded italic text-[11px] leading-relaxed text-slate-200">
+                            "{warningMessage}"
+                          </div>
+                        </div>
+
+                        <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm flex flex-col justify-between">
+                          <span className="text-[10px] theme-text-muted font-mono uppercase mb-2 block"><i className="fa-solid fa-mobile-screen"></i> Mobile Lockscreen push</span>
+                          <div className="theme-chip hover-scale border theme-border p-2.5 rounded shadow max-w-[240px] text-white text-[10px]">
+                            <div className="font-bold">ECOSHIELD ALERT</div>
+                            <p className="text-slate-355 mt-0.5 leading-normal">{warningMessage}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 8: SUSTAINABILITY ANALYTICS */}
+              {/* ======================================= */}
+              {activeTab === "sustainability" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-leaf text-green-600"></i> Sustainability & SDG Targets
+                    </h2>
+                    <p className="theme-text-muted text-xs font-mono">Verify local performance against UN Sustainable Development targets in Bangalore Metro.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm">
+                      <span className="text-[9px] text-slate-400 font-mono font-bold block uppercase">SDG 13 - Climate</span>
+                      <div className="text-xl font-extrabold text-green-500 mt-1">72.4 / 100</div>
+                    </div>
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm">
+                      <span className="text-[9px] text-slate-400 font-mono font-bold block uppercase">SDG 6 - Clean Water</span>
+                      <div className="text-xl font-extrabold text-cyan-400 mt-1">84.1%</div>
+                    </div>
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm">
+                      <span className="text-[9px] text-slate-400 font-mono font-bold block uppercase">Carbon Offset</span>
+                      <div className="text-xl font-extrabold text-cyan-400 mt-1">1,240 tCO2e</div>
+                    </div>
+                    <div className="theme-card animate-fade-in-up hover-scale p-4 rounded border theme-border shadow-sm">
+                      <span className="text-[9px] text-slate-400 font-mono font-bold block uppercase">Tree Canopy</span>
+                      <div className="text-xl font-extrabold text-purple-400 mt-1">24.8%</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 9: ADMIN CONTROL PANEL */}
+              {/* ======================================= */}
+              {activeTab === "admin" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-gears text-blue-500"></i> Platform Control Center & Diagnostics
+                    </h2>
+                    <p className="text-slate-500 text-xs font-mono">Diagnose active environmental telemetry sensors and verify connection statuses.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+                    
+                    <div className="lg:col-span-2 theme-card p-5 rounded border theme-border shadow-sm space-y-3">
+                      <h3 className="text-xs font-bold uppercase theme-text-muted font-mono border-b theme-border pb-2">Active Sensor Diagnostics</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="theme-surface border theme-border p-3 rounded flex justify-between items-center">
+                          <div>
+                            <span className="font-bold text-slate-200 font-mono">NODE S-401</span>
+                            <p className="text-[9px] theme-text-muted font-mono">Bellandur Lake Depth</p>
+                          </div>
+                          <span className="text-[9px] text-green-700 font-mono font-bold">ONLINE</span>
+                        </div>
+                        <div className="theme-surface border theme-border p-3 rounded flex justify-between items-center">
+                          <div>
+                            <span className="font-bold text-slate-200 font-mono">NODE S-402</span>
+                            <p className="text-[9px] theme-text-muted font-mono">PM2.5 Sensor (Silk Board)</p>
+                          </div>
+                          <span className="text-[9px] text-green-700 font-mono font-bold">ONLINE</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================= */}
+              {/* TAB 10: REPORTING MODULE */}
+              {/* ======================================= */}
+              {activeTab === "reporting" && (
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      <i className="fa-solid fa-file-pdf text-blue-500"></i> Environmental Reporting Module
+                    </h2>
+                    <p className="text-slate-500 text-xs font-mono">Select dates to export audited sensor summaries.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+                    
+                    <div className="theme-card animate-fade-in-up hover-scale p-5 rounded border theme-border shadow-sm space-y-3.5 lg:col-span-1 h-fit">
+                      <h3 className="text-xs font-bold uppercase text-slate-500 font-mono border-b theme-border pb-2">Export controls</h3>
+                      
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <label className="theme-text-muted block">Report Category</label>
+                          <select value={reportType} onChange={e => setReportType(e.target.value)} className="theme-surface border theme-border p-2 rounded w-full focus:outline-none text-slate-200">
+                            <option>Disaster Summary</option>
+                            <option>Environmental Logs</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="theme-text-muted block">Coverage Duration</label>
+                          <select value={reportTimeframe} onChange={e => setReportTimeframe(e.target.value)} className="theme-surface border theme-border p-2 rounded w-full focus:outline-none text-slate-200">
+                            <option>24 Hours</option>
+                            <option>7 Days</option>
+                          </select>
+                        </div>
+                        <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-505 text-white w-full py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5"><i className="fa-solid fa-print"></i> Generate & Print Sheet</button>
+                      </div>
+                    </div>
+
+                    {/* Preview page */}
+                    <div className="lg:col-span-2 bg-white p-6 rounded border border-slate-350 shadow-sm text-slate-800 space-y-4">
+                      <div className="flex justify-between items-center border-b-2 theme-border pb-2">
+                        <div>
+                          <h4 className="font-bold text-sm uppercase">EcoShield Console Audit Report</h4>
+                          <span className="text-[9px] theme-text-muted font-mono">Bangalore Disaster Management Authority (BBMP)</span>
+                        </div>
+                        <i className="fa-solid fa-server text-blue-600 text-2xl"></i>
+                      </div>
+
+                      <div className="text-[11px] space-y-2.5 leading-relaxed text-slate-600">
+                        <p>This automated sheet details verified telemetry feeds from hydrological and ambient meteorological arrays over the <b>{reportTimeframe}</b> duration.</p>
+                        
+                        <table className="w-full text-left text-[11px] text-slate-705 border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                              <th className="p-2">Sensor Point</th>
+                              <th className="p-2">Type</th>
+                              <th className="p-2">Value</th>
+                              <th className="p-2">Threshold Limits</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b border-slate-100">
+                              <td className="p-2 font-mono">Bellandur Node S-401</td>
+                              <td className="p-2">Lake Depth</td>
+                              <td className="p-2 font-mono">{riverLevel}m</td>
+                              <td className="p-2 text-red-600 font-mono">14.50m</td>
+                            </tr>
+                            <tr className="border-b border-slate-100">
+                              <td className="p-2 font-mono">Silk Board Node S-402</td>
+                              <td className="p-2">AQI Grid</td>
+                              <td className="p-2 font-mono">{sensorAqi} AQI</td>
+                              <td className="p-2 text-red-650 font-mono">200 AQI</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-mono">TG Halli Node S-403</td>
+                              <td className="p-2">Water Reserves</td>
+                              <td className="p-2 font-mono">{reservoirCapacity.toFixed(1)}%</td>
+                              <td className="p-2 text-red-600 font-mono">30% (Critical)</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </main>
+            {renderAiChatAssistant()}
+          </div>
+        </div>
+      );
+    }
+
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
+
