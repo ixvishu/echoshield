@@ -41,8 +41,8 @@ export default function CitizenReporting({ reports, onSubmit, onVerify, onReject
       phone: phone || "+91 99999 88888",
       type,
       location,
-      lat: 12.60 + offsetLat,
-      lng: 77.12 + offsetLng,
+      lat: 12.940 + offsetLat,
+      lng: 77.600 + offsetLng,
       desc,
       image: "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=300&q=80"
     });

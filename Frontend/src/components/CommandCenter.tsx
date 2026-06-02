@@ -22,6 +22,7 @@ interface CommandCenterProps {
   alerts: SystemAlert[];
   reports: CitizenReport[];
   resources: EmergencyResource[];
+  darkMode?: boolean;
 }
 
 export default function CommandCenter({
@@ -32,22 +33,30 @@ export default function CommandCenter({
   alerts,
   reports,
   resources,
+  darkMode = true,
 }: CommandCenterProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     if (!mapRef.current) {
-      const map = L.map(mapContainerRef.current, { zoomControl: false }).setView([12.60, 77.12], 11);
+      const map = L.map(mapContainerRef.current, { zoomControl: false }).setView([12.940, 77.600], 11);
       mapRef.current = map;
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CARTO'
-      }).addTo(map);
     }
 
     const map = mapRef.current;
+    
+    // Update Tile Layer
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+    const tileUrl = darkMode
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    tileLayerRef.current = L.tileLayer(tileUrl, { attribution: '&copy; CARTO' }).addTo(map);
     
     // Clear old layers
     map.eachLayer((layer) => {
@@ -58,13 +67,13 @@ export default function CommandCenter({
 
     // Flood Polygon
     L.polygon([
-      [12.63, 77.11], [12.632, 77.14], [12.625, 77.18],
-      [12.618, 77.18], [12.612, 77.15], [12.619, 77.11]
+      [12.970, 77.590], [12.972, 77.620], [12.965, 77.660],
+      [12.958, 77.660], [12.952, 77.630], [12.959, 77.590]
     ], { color: '#38bdf8', fillColor: '#0284c7', fillOpacity: 0.35, weight: 2 }).addTo(map);
 
     // Landslide circles
-    L.circle([12.578, 77.085], { color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.3, radius: 800 }).addTo(map);
-    L.circle([12.590, 77.195], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3, radius: 600 }).addTo(map);
+    L.circle([12.918, 77.565], { color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.3, radius: 800 }).addTo(map);
+    L.circle([12.930, 77.675], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3, radius: 600 }).addTo(map);
 
     // Resources
     resources.forEach(res => {
@@ -82,7 +91,7 @@ export default function CommandCenter({
       const customIcon = L.divIcon({ html: iconHtml, className: 'custom-pulse-icon', iconSize: [22, 22] });
       L.marker([rep.lat, rep.lng], { icon: customIcon }).addTo(map);
     });
-  }, [reports, resources]);
+  }, [reports, resources, darkMode]);
 
   // Mock trend data
   const trendData = [

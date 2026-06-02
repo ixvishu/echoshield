@@ -6,20 +6,20 @@ import { CitizenReport, EmergencyResource } from '../App';
 interface GisMapProps {
   reports: CitizenReport[];
   resources: EmergencyResource[];
-  darkMode: boolean;
+  darkMode?: boolean;
 }
 
-export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
+export default function GisMap({ reports, resources, darkMode = true }: GisMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   const [floodLayer, setFloodLayer] = useState(true);
   const [landslideLayer, setLandslideLayer] = useState(true);
   const [droughtLayer, setDroughtLayer] = useState(false);
   const [infrastructureLayer, setInfrastructureLayer] = useState(true);
   
-  const [searchCoords, setSearchCoords] = useState("12.60, 77.12");
-  const [tileMode, setTileMode] = useState<'dark' | 'satellite'>('dark');
+  const [searchCoords, setSearchCoords] = useState("12.940, 77.600");
 
   // Layer groups references
   const layerGroupsRef = useRef<{
@@ -42,28 +42,21 @@ export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
 
     // Create Map instance if not exists
     if (!mapRef.current) {
-      const map = L.map(mapContainerRef.current).setView([12.60, 77.12], 12);
+      const map = L.map(mapContainerRef.current).setView([12.940, 77.600], 12);
       mapRef.current = map;
     }
 
     const map = mapRef.current;
 
-    // Set Map tiles
-    const tileUrl = tileMode === 'satellite'
-      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : darkMode
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-
-    // Clear old tile layers
-    map.eachLayer(layer => {
-      if (layer instanceof L.TileLayer) {
-        map.removeLayer(layer);
-      }
-    });
-
-    L.tileLayer(tileUrl, {
-      attribution: tileMode === 'satellite' ? 'ArcGIS Imagery' : '&copy; CARTO'
+    // Update Tile Layer dynamically
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+    const tileUrl = darkMode
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    tileLayerRef.current = L.tileLayer(tileUrl, { 
+      attribution: '&copy; CARTO' 
     }).addTo(map);
 
     // --- CLEAR PREVIOUS LAYERS ---
@@ -78,8 +71,8 @@ export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
     // --- DRAW FLOOD LAYER ---
     if (floodLayer) {
       const floodCoords: L.LatLngTuple[] = [
-        [12.63, 77.11], [12.632, 77.14], [12.625, 77.18],
-        [12.618, 77.18], [12.612, 77.15], [12.619, 77.11]
+        [12.970, 77.590], [12.972, 77.620], [12.965, 77.660],
+        [12.958, 77.660], [12.952, 77.630], [12.959, 77.590]
       ];
       const polygon = L.polygon(floodCoords, {
         color: '#38bdf8',
@@ -92,7 +85,7 @@ export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
 
     // --- DRAW LANDSLIDE LAYER ---
     if (landslideLayer) {
-      const landslide1 = L.circle([12.578, 77.085], {
+      const landslide1 = L.circle([12.918, 77.565], {
         color: '#f59e0b',
         fillColor: '#f59e0b',
         fillOpacity: 0.3,
@@ -100,7 +93,7 @@ export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
       }).addTo(map).bindPopup("<b>Landslide Risk zone</b>");
       layerGroupsRef.current.landslides.push(landslide1);
 
-      const landslide2 = L.circle([12.590, 77.195], {
+      const landslide2 = L.circle([12.930, 77.675], {
         color: '#ef4444',
         fillColor: '#ef4444',
         fillOpacity: 0.3,
@@ -111,7 +104,7 @@ export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
 
     // --- DRAW DROUGHT LAYER ---
     if (droughtLayer) {
-      const drought = L.circle([12.55, 77.13], {
+      const drought = L.circle([12.890, 77.610], {
         color: '#ec4899',
         fillColor: '#ec4899',
         fillOpacity: 0.15,
@@ -156,7 +149,7 @@ export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
       layerGroupsRef.current.citizen.push(marker);
     });
 
-  }, [floodLayer, landslideLayer, droughtLayer, infrastructureLayer, tileMode, reports, resources, darkMode]);
+  }, [floodLayer, landslideLayer, droughtLayer, infrastructureLayer, reports, resources, darkMode]);
 
   const handleSearch = () => {
     if (!mapRef.current) return;
@@ -209,30 +202,14 @@ export default function GisMap({ reports, resources, darkMode }: GisMapProps) {
         <div className="glass-panel p-4 rounded-lg space-y-4 lg:col-span-1">
           <h3 className="text-sm font-bold border-b border-slate-800 pb-2">GIS Control Deck</h3>
           
-          <div className="space-y-2">
-            <label className="text-xs text-slate-400">Map View Mode</label>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button 
-                onClick={() => setTileMode('dark')}
-                className={`py-1.5 rounded font-mono ${tileMode === 'dark' ? 'bg-cyan-600 text-white' : 'bg-slate-900 text-slate-400 border border-slate-800'}`}>
-                Dark Command
-              </button>
-              <button 
-                onClick={() => setTileMode('satellite')}
-                className={`py-1.5 rounded font-mono ${tileMode === 'satellite' ? 'bg-cyan-600 text-white' : 'bg-slate-900 text-slate-400 border border-slate-800'}`}>
-                Satellite ESG
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs text-slate-400">Locate Latitude, Longitude</label>
-            <div className="flex gap-1.5">
+          <div className="pt-4 border-t border-slate-800">
+              <label className="text-xs text-slate-400">Search Coordinates</label>
+              <div className="flex gap-2 mt-1">
               <input 
                 type="text" 
                 value={searchCoords} 
                 onChange={e => setSearchCoords(e.target.value)}
-                placeholder="12.60, 77.12" 
+                placeholder="12.940, 77.600" 
                 className="bg-slate-950 border border-slate-850 px-3 py-1.5 rounded text-xs w-full text-slate-200 focus:outline-none focus:border-cyan-500" 
               />
               <button onClick={handleSearch} className="bg-cyan-600 hover:bg-cyan-500 px-3 rounded text-xs">

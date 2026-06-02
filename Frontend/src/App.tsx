@@ -74,18 +74,18 @@ export interface SystemAlert {
 }
 
 const INITIAL_REPORTS: CitizenReport[] = [
-  { id: "REP-104", name: "Ramesh Sharma", phone: "+91 98765 43210", type: "Flood", location: "Bangalore City Sector 4", lat: 12.612, lng: 77.158, desc: "Water level rising rapidly. Road flooded upto knee level.", status: "Pending", time: "10 mins ago", image: "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=300&q=80" },
-  { id: "REP-103", name: "Ananya Deshmukh", phone: "+91 88822 11445", type: "Tree Fall", location: "Koramangala Road", lat: 12.598, lng: 77.142, desc: "Large banyan tree fallen across main street, blocking traffic and power lines.", status: "Verified", time: "25 mins ago", image: "https://images.unsplash.com/photo-1594756297462-ec7a6c9d747a?auto=format&fit=crop&w=300&q=80" },
-  { id: "REP-102", name: "Vikram Singh", phone: "+91 70123 45678", type: "Water Leakage", location: "Whitefield Reservoir Pipe Line", lat: 12.625, lng: 77.045, desc: "Major rupture in 12-inch water main, wasting thousands of gallons.", status: "Assigned", time: "1 hour ago", image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=300&q=80" },
-  { id: "REP-101", name: "Dr. K. Raghavan", phone: "+91 94440 12345", type: "Pollution", location: "Industrial Area Phase II", lat: 12.581, lng: 77.099, desc: "Chemical runoff observed in local stream, turning water milky white.", status: "Resolved", time: "3 hours ago", image: "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=300&q=80" },
+  { id: "REP-104", name: "Ramesh Sharma", phone: "+91 98765 43210", type: "Flood", location: "Bangalore City Sector 4", lat: 12.952, lng: 77.638, desc: "Water level rising rapidly. Road flooded upto knee level.", status: "Pending", time: "10 mins ago", image: "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=300&q=80" },
+  { id: "REP-103", name: "Ananya Deshmukh", phone: "+91 88822 11445", type: "Tree Fall", location: "Koramangala Road", lat: 12.938, lng: 77.622, desc: "Large banyan tree fallen across main street, blocking traffic and power lines.", status: "Verified", time: "25 mins ago", image: "https://images.unsplash.com/photo-1594756297462-ec7a6c9d747a?auto=format&fit=crop&w=300&q=80" },
+  { id: "REP-102", name: "Vikram Singh", phone: "+91 70123 45678", type: "Water Leakage", location: "Whitefield Reservoir Pipe Line", lat: 12.965, lng: 77.525, desc: "Major rupture in 12-inch water main, wasting thousands of gallons.", status: "Assigned", time: "1 hour ago", image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=300&q=80" },
+  { id: "REP-101", name: "Dr. K. Raghavan", phone: "+91 94440 12345", type: "Pollution", location: "Industrial Area Phase II", lat: 12.921, lng: 77.579, desc: "Chemical runoff observed in local stream, turning water milky white.", status: "Resolved", time: "3 hours ago", image: "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=300&q=80" },
 ];
 
 const EMERGENCY_RESOURCES: EmergencyResource[] = [
-  { id: "RES-01", name: "Bangalore NDRF Unit A", type: "Rescue Team", status: "Active", location: "Bangalore City", lat: 12.615, lng: 77.160, contact: "Inspector Rawat" },
-  { id: "RES-02", name: "Bellandur Flood Boat 3", type: "Rescue Team", status: "Standby", location: "Bellandur Ghat", lat: 12.628, lng: 77.120, contact: "Sub-Inspector Prasad" },
-  { id: "RES-03", name: "Emergency Ambulance 12", type: "Ambulance", status: "Active", location: "Victoria Hospital", lat: 12.621, lng: 77.150, contact: "Driver Shashi" },
-  { id: "RES-04", name: "Civil Defense Shelter 2", type: "Shelter", status: "Active", location: "Koramangala Stadium", lat: 12.599, lng: 77.148, contact: "Coordinator Verma" },
-  { id: "RES-05", name: "District Fire Unit 4", type: "Fire Station", status: "Standby", location: "MG Road Station", lat: 12.611, lng: 77.118, contact: "Station Officer Sen" },
+  { id: "RES-01", name: "Bangalore NDRF Unit A", type: "Rescue Team", status: "Active", location: "Bangalore City", lat: 12.955, lng: 77.640, contact: "Inspector Rawat" },
+  { id: "RES-02", name: "Bellandur Flood Boat 3", type: "Rescue Team", status: "Standby", location: "Bellandur Ghat", lat: 12.968, lng: 77.600, contact: "Sub-Inspector Prasad" },
+  { id: "RES-03", name: "Emergency Ambulance 12", type: "Ambulance", status: "Active", location: "Victoria Hospital", lat: 12.961, lng: 77.630, contact: "Driver Shashi" },
+  { id: "RES-04", name: "Civil Defense Shelter 2", type: "Shelter", status: "Active", location: "Koramangala Stadium", lat: 12.939, lng: 77.628, contact: "Coordinator Verma" },
+  { id: "RES-05", name: "District Fire Unit 4", type: "Fire Station", status: "Standby", location: "MG Road Station", lat: 12.951, lng: 77.598, contact: "Station Officer Sen" },
 ];
 
 const INITIAL_ALERTS: SystemAlert[] = [
@@ -906,36 +906,36 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-darkBg text-slate-100 font-sans">
+    <div className="min-h-screen flex flex-col dark:bg-[#05070c] bg-slate-50 text-slate-900 dark:text-slate-100 font-sans transition-colors">
       {renderLiveFeedBanner()}
       
       {/* Top Banner Header */}
-      <header className="border-b border-slate-800 bg-[#070b13] px-6 py-4 flex items-center justify-between z-10">
+      <header className="border-b dark:border-slate-800 border-slate-300 dark:bg-[#070b13] bg-white px-6 py-4 flex items-center justify-between z-10 transition-colors">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30 glow-border-cyan">
             <Shield className="text-cyan-400 h-5 w-5" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-glow-cyan text-cyan-400 font-display">ECOSHIELD AI</h1>
-            <p className="text-[10px] uppercase font-mono tracking-widest text-slate-400">Climate Resilience Command Center</p>
+            <p className="text-[10px] uppercase font-mono tracking-widest dark:text-slate-400 text-slate-500">Climate Resilience Command Center</p>
           </div>
         </div>
 
         <div className="flex items-center gap-8">
           <button 
             onClick={() => setDarkMode(!darkMode)}
-            className="hover:text-white flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0b0f17] border border-slate-800 cursor-pointer"
+            className="hover:text-cyan-400 flex items-center gap-1.5 px-2.5 py-1 rounded dark:bg-[#0b0f17] bg-white border dark:border-slate-800 border-slate-300 cursor-pointer transition-colors"
           >
             {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-indigo-400" />}
             <span className="font-mono text-[10px]">{darkMode ? 'LIGHT' : 'DARK'}</span>
           </button>
           
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded bg-red-950/20 border border-red-500/30">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded dark:bg-red-950/20 bg-red-100 border dark:border-red-500/30 border-red-200">
             <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse"></span>
-            <span className="text-xs font-mono font-semibold text-red-500">LIVE FEED</span>
+            <span className="text-xs font-mono font-semibold dark:text-red-500 text-red-600">LIVE FEED</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-4 text-xs font-mono text-slate-400">
+          <div className="hidden sm:flex items-center gap-4 text-xs font-mono dark:text-slate-400 text-slate-600">
             <span className="flex items-center gap-2">
               <Wifi className="text-emerald-500 h-4.5 w-4.5" />
               WS: <span className="text-emerald-400 font-semibold">CONNECTED</span>
@@ -956,50 +956,50 @@ export default function App() {
       <div className="flex-1 flex flex-col md:flex-row">
         
         {/* Navigation Sidebar */}
-        <nav className="md:w-64 border-r border-slate-800 bg-[#070b13] p-4 flex flex-col gap-1.5 flex-shrink-0">
-          <span className="text-[10px] text-slate-500 font-mono tracking-wider px-3 mb-2 uppercase">Core Platforms</span>
+        <nav className="md:w-64 border-r dark:border-slate-800 border-slate-300 dark:bg-[#070b13] bg-white p-4 flex flex-col gap-1.5 flex-shrink-0 transition-colors">
+          <span className="text-[10px] dark:text-slate-500 text-slate-400 font-mono tracking-wider px-3 mb-2 uppercase">Core Platforms</span>
           
           <button 
             onClick={() => setActiveTab("dashboard")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'dashboard' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'dashboard' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Activity className="h-4.5 w-4.5" /> Command Dashboard
           </button>
 
           <button 
             onClick={() => setActiveTab("map")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'map' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'map' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <MapIcon className="h-4.5 w-4.5" /> GIS Intelligence Map
           </button>
 
           <button 
             onClick={() => setActiveTab("predictions")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'predictions' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'predictions' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Brain className="h-4.5 w-4.5" /> AI Prediction Engine
           </button>
 
           <button 
             onClick={() => setActiveTab("environmental")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'environmental' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'environmental' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Wind className="h-4.5 w-4.5" /> Environmental Track
           </button>
 
-          <span className="text-[10px] text-slate-500 font-mono tracking-wider px-3 mt-4 mb-2 uppercase">Actions & Ops</span>
+          <span className="text-[10px] dark:text-slate-500 text-slate-400 font-mono tracking-wider px-3 mt-4 mb-2 uppercase">Actions & Ops</span>
 
           <button 
             onClick={() => setActiveTab("citizen")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'citizen' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'citizen' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Users className="h-4.5 w-4.5" /> Citizen Reporting
           </button>
 
           <button 
             onClick={() => setActiveTab("response")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'response' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'response' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Truck className="h-4.5 w-4.5" /> Emergency Response
           </button>
 
           <button 
             onClick={() => setActiveTab("warnings")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'warnings' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'warnings' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <AlertTriangle className="h-4.5 w-4.5" /> Early Warning System
           </button>
 
@@ -1007,19 +1007,19 @@ export default function App() {
 
           <button 
             onClick={() => setActiveTab("sustainability")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'sustainability' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'sustainability' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Leaf className="h-4.5 w-4.5" /> Sustainability & SDGs
           </button>
 
           <button 
             onClick={() => setActiveTab("admin")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'admin' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'admin' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <Sliders className="h-4.5 w-4.5" /> Admin Control Panel
           </button>
 
           <button 
             onClick={() => setActiveTab("reporting")}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'reporting' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'}`}>
+            className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all duration-200 ${activeTab === 'reporting' ? 'bg-cyan-950/60 text-cyan-400 border-l-4 border-cyan-400 font-semibold' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 dark:hover:bg-slate-800/40 hover:bg-slate-100'}`}>
             <FileText className="h-4.5 w-4.5" /> Export Reports
           </button>
 
@@ -1049,15 +1049,14 @@ export default function App() {
               alerts={alerts}
               reports={reports}
               resources={resources}
+              darkMode={darkMode}
             />
           )}
 
           {activeTab === 'map' && (
-            <GisMap 
-              reports={reports}
-              resources={resources}
-              darkMode={darkMode}
-            />
+            <div className="h-[calc(100vh-120px)]">
+              <GisMap reports={reports} resources={resources} darkMode={darkMode} />
+            </div>
           )}
 
           {activeTab === 'predictions' && (
